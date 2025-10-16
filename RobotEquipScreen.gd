@@ -2,6 +2,8 @@
 extends Control
 class_name RobotEquipScreen
 signal screen_closed
+var current_energy_bonus: int = 0
+var current_storage_bonus: int = 0
 
 @onready var head_slot: EquipSlot = $MainLayout/RobotPanel/HeadSlot
 @onready var left_arm_slot: EquipSlot = $MainLayout/RobotPanel/LeftArm
@@ -34,6 +36,7 @@ func show_screen():
 	update_robot_stats() # Update stats every time the screen is opened
 
 func _on_confirm_button_pressed() -> void:
+	RobotState.update_equipment_bonuses(current_energy_bonus, current_storage_bonus)
 	get_parent().get_parent().show_screen("main_menu")
 
 # --- SAFETY NET DROP LOGIC (for the background) ---
@@ -78,5 +81,6 @@ func display_stats(stats: Dictionary):
 	var stats_text = "ROBOT STATS:\n"
 	for stat_name in stats:
 		stats_text += "- %s: %s\n" % [stat_name.capitalize(), stats[stat_name]]
-		
 	stats_label.text = stats_text
+	self.current_energy_bonus = stats.get("energy", 0)
+	self.current_storage_bonus = stats.get("storage", 0)

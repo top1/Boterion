@@ -24,6 +24,7 @@ const MapGenerator = preload("res://MapGenerator.gd")
 @onready var loot_slider = %LootSlider
 @onready var loot_energy_label = %LootEnergyLabel
 @onready var energy_bar_label = %EnergyBarLabel
+@onready var execute_plan_button = %ExecutePlanButton
 
 var planned_remaining_energy: int = 0
 var mission_plan: Array[Dictionary] = []
@@ -37,23 +38,16 @@ var map_seed = 1337
 
 
 func _ready():
+	# Die _ready()-Funktion ist NUR noch für das einmalige Verbinden
+	# von Signalen zuständig. Sie setzt keinen Zustand mehr.
 	draw_map()
 	scan_button.pressed.connect(_on_scan_pressed)
-
-	# Initialisiere die geplante Energie mit dem Startwert des Roboters
-	planned_remaining_energy = RobotState.current_energy
-	
-	# Setze die UI initial
-	update_mission_plan_display()
-	_update_energy_bar_display()
-	
-	room_info_label.text = "Select a room for details."
-	action_buttons_container.hide()
-	open_button.pressed.connect(_on_open_pressed) # <-- FEHLTE WAHRSCHEINLICH
-	loot_button.pressed.connect(_on_loot_pressed) # <-- FEHLTE WAHRSCHEINLICH
-	scavenge_button.pressed.connect(_on_scavenge_pressed) # <-- FEHLTE WAHRSCHEINLICH
+	open_button.pressed.connect(_on_open_pressed)
+	loot_button.pressed.connect(_on_loot_pressed)
+	scavenge_button.pressed.connect(_on_scavenge_pressed)
 	remove_last_mission_button.pressed.connect(_on_remove_last_mission)
 	loot_slider.value_changed.connect(_on_loot_slider_changed)
+	execute_plan_button.pressed.connect(_on_execute_plan_pressed)
 	
 # Diese Funktion löscht die alte Karte und zeichnet eine neue.
 func draw_map():
@@ -463,3 +457,100 @@ func get_final_return_cost() -> int:
 
 func _on_confirm_pressed() -> void:
 	get_parent().show_screen("main_menu")
+
+func show_screen():
+	# 1. Mache den Screen sichtbar.
+	show()
+	
+	# 2. SYNCHRONISIERE DEN ZUSTAND, WENN ES ANGEBRACHT IST
+	# Wenn der Missionsplan leer ist, bedeutet das, wir beginnen eine neue Planung.
+	# In diesem Fall holen wir uns den frischesten Energiewert vom RobotState.
+	# (Das ist der Wert, der nach dem Bestätigen im EquipScreen gesetzt wurde).
+	if mission_plan.is_empty():
+		planned_remaining_energy = RobotState.current_energy
+	
+	# 3. Zeichne die UI basierend auf dem (jetzt korrekten) Zustand neu.
+	update_mission_plan_display()
+	_update_energy_bar_display()
+
+func is_plan_empty() -> bool:
+	return mission_plan.is_empty()
+
+
+func _on_execute_plan_pressed():
+	if mission_plan.is_empty():
+		return # Nichts zu tun
+
+	print("--- EXECUTING MISSION PLAN ---")
+	
+	var collected_loot = {}
+	
+	# Gehe durch jede geplante Mission
+	for mission in mission_plan:
+		var room = mission.target_room
+		
+		# Führe die Aktion aus
+		match mission.type:
+			"SCAN":
+				room.is_scanned = true
+				print("Room %s is now scanned." % room.room_id)
+				
+			"OPEN":
+				# Hier könntest du später einen "is_open"-Status setzen
+				print("Door to room %s opened." % room.room_id)
+				
+			"SCAVENGE":
+				var energy_spent = mission.cost
+				# KORRIGIERT: Verwende RobotState
+				var scavenged_e = min(room.loot_pool.electronics.current, energy_spent / RobotState.ENERGY_PER_ELECTRONIC)
+				var scavenged_s = min(room.loot_pool.scrap_metal.current, energy_spent / RobotState.ENERGY_PER_SCRAP)
+				
+				collected_loot["electronics"] = collected_loot.get("electronics", 0) + scavenged_e
+				collected_loot["scrap_metal"] = collected_loot.get("scrap_metal", 0) + scavenged_s
+				
+				room.loot_pool.electronics.current -= scavenged_e
+				room.loot_pool.scrap_metal.current -= scavenged_s
+				
+			"LOOT":
+				var energy_spent = mission.cost
+				# KORRIGIERT: Verwende RobotState
+				var looted_b = min(room.loot_pool.blueprints.current, energy_spent / RobotState.ENERGY_PER_BLUEPRINT)
+				var looted_f = min(room.loot_pool.food.current, energy_spent / RobotState.ENERGY_PER_FOOD)
+				
+				collected_loot["blueprints"] = collected_loot.get("blueprints", 0) + looted_b
+				collected_loot["food"] = collected_loot.get("food", 0) + looted_f
+				
+				room.loot_pool.blueprints.current -= looted_b
+				room.loot_pool.food.current -= looted_f
+
+	# --- FINALE BERECHNUNGEN & ZUSTANDS-UPDATES ---
+	
+	# 1. Berechne die finalen Energiekosten und aktualisiere den Roboter
+	var total_actions_cost = RobotState.MAX_ENERGY - planned_remaining_energy
+	var return_cost = get_final_return_cost()
+	# KORRIGIERT: Verwende RobotState
+	RobotState.current_energy -= (total_actions_cost + return_cost)
+	
+	# 2. Füge die gesammelte Beute zum globalen Inventar/Lager hinzu
+	var total_items_collected = 0
+	for item_name in collected_loot:
+		total_items_collected += collected_loot[item_name]
+	
+	# KORRIGIERT: Verwende RobotState
+	RobotState.current_storage += total_items_collected # Vereinfachung!
+	
+	# 3. Bereite den nächsten Tag vor (Plan zurücksetzen)
+	mission_plan.clear()
+	
+	# 4. Zeige den Belohnungs-Screen an
+	# WICHTIG: Wir müssen zuerst sicherstellen, dass die ScreenManager-Struktur bereit ist.
+	# Siehe Schritt 3 für die Code-Änderungen in anderen Dateien.
+	var screen_manager = get_tree().get_first_node_in_group("ScreenManager")
+	if screen_manager:
+		# Hole den RewardScreen Node vom Manager
+		var reward_screen = screen_manager.get_node("RewardScreen")
+		if reward_screen and reward_screen.has_method("show_rewards"):
+			reward_screen.show_rewards(collected_loot)
+		
+		# Sage dem Manager, den Screen zu wechseln
+		screen_manager.show_screen("reward")

@@ -1,9 +1,10 @@
-[gd_scene load_steps=5 format=3 uid="uid://nf3v7x6euql7"]
+[gd_scene load_steps=6 format=3 uid="uid://nf3v7x6euql7"]
 
 [ext_resource type="Script" uid="uid://c2yxagw1ptyhi" path="res://ScreenManager.gd" id="1_glv2v"]
 [ext_resource type="Script" uid="uid://xvth038882ag" path="res://MainMenuScreen.gd" id="2_r0du0"]
 [ext_resource type="PackedScene" uid="uid://dqyrxafvubfij" path="res://EquipScreen.tscn" id="2_uu6xs"]
 [ext_resource type="PackedScene" uid="uid://bykhhuqt4oyd2" path="res://MapView.tscn" id="4_cm0pq"]
+[ext_resource type="PackedScene" uid="uid://bp4p1ij4cj5pj" path="res://RewardScreen.tscn" id="5_fos0i"]
 
 [node name="Main" type="Control"]
 layout_mode = 3
@@ -53,6 +54,16 @@ layout_mode = 2
 
 [node name="GameScreen" parent="CanvasLayer/ScreenManager" instance=ExtResource("4_cm0pq")]
 layout_mode = 1
+
+[node name="RewardScreen" parent="CanvasLayer/ScreenManager" instance=ExtResource("5_fos0i")]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+
+[node name="WarningDialog" type="AcceptDialog" parent="."]
+unique_name_in_owner = true
+title = "Warning"
+dialog_text = "Message goes here"
 
 [connection signal="pressed" from="CanvasLayer/ScreenManager/MainMenuScreen/VBoxContainer/Button" to="CanvasLayer/ScreenManager/MainMenuScreen" method="_on_button_pressed"]
 [connection signal="pressed" from="CanvasLayer/ScreenManager/MainMenuScreen/VBoxContainer/EquipScreen" to="CanvasLayer/ScreenManager/MainMenuScreen" method="_on_equip_screen_pressed"]

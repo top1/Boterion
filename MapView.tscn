@@ -104,6 +104,8 @@ text = "MISSION PLANNER AREA"
 [node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer2"]
 layout_direction = 3
 layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
 
 [node name="Confirm" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer2/HBoxContainer"]
 custom_minimum_size = Vector2(100, 25)
@@ -116,6 +118,13 @@ custom_minimum_size = Vector2(100, 25)
 layout_mode = 2
 size_flags_horizontal = 8
 text = "REMOVE LAST ENTRY"
+
+[node name="ExecutePlanButton" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer2/HBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(100, 25)
+layout_mode = 2
+size_flags_horizontal = 8
+text = "RELEASE THE ROBOT"
 
 [node name="EnergyBar" type="ProgressBar" parent="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer2"]
 unique_name_in_owner = true
@@ -190,3 +199,4 @@ size_flags_horizontal = 3
 text = "BREAK DOOR"
 
 [connection signal="pressed" from="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer2/HBoxContainer/Confirm" to="." method="_on_confirm_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer2/HBoxContainer/ExecutePlanButton" to="." method="_on_execute_plan_button_pressed"]
