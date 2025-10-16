@@ -16,7 +16,7 @@ grow_vertical = 2
 
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
 
-[node name="ScreenManager" type="Control" parent="CanvasLayer"]
+[node name="ScreenManager" type="Control" parent="CanvasLayer" groups=["ScreenManager"]]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
