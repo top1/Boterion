@@ -459,3 +459,7 @@ func get_final_return_cost() -> int:
 	# Ansonsten berechne die Kosten vom Ziel der letzten Mission.
 	var last_mission = mission_plan.back()
 	return last_mission.target_room.distance * RobotState.MOVE_COST_PER_UNIT
+
+
+func _on_confirm_pressed() -> void:
+	get_parent().show_screen("main_menu")

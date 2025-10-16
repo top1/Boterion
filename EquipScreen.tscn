@@ -1,0 +1,305 @@
+[gd_scene load_steps=8 format=3 uid="uid://dqyrxafvubfij"]
+
+[ext_resource type="Script" uid="uid://ssuo7kp20lmo" path="res://RobotEquipScreen.gd" id="1_3j4y3"]
+[ext_resource type="Texture2D" uid="uid://butsf7yempkbj" path="res://graphics/background/background_simple_grid.png" id="1_55gbs"]
+[ext_resource type="Texture2D" uid="uid://cypclqjs2xfmj" path="res://graphics/robots/robot_simple_dummy_white.png" id="2_3j4y3"]
+[ext_resource type="Script" uid="uid://bdp4f2echxyh8" path="res://robot_panel.gd" id="3_c1jpw"]
+[ext_resource type="Script" uid="uid://cuca13ghn8vn1" path="res://equip_slot.gd" id="3_mai7p"]
+[ext_resource type="Script" uid="uid://bpq13eirqivs4" path="res://Inventory_slot.gd" id="4_c1jpw"]
+[ext_resource type="Resource" uid="uid://cmfh51rra01bc" path="res://items/old_battery.tres" id="6_mai7p"]
+
+[node name="Control" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_3j4y3")
+
+[node name="Background" type="TextureRect" parent="."]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+texture = ExtResource("1_55gbs")
+
+[node name="MainLayout" type="HBoxContainer" parent="."]
+layout_mode = 0
+offset_right = 1153.0
+offset_bottom = 647.0
+
+[node name="RobotPanel" type="Control" parent="MainLayout"]
+layout_mode = 2
+size_flags_horizontal = 3
+script = ExtResource("3_c1jpw")
+
+[node name="TextureRect" type="TextureRect" parent="MainLayout/RobotPanel"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -229.0
+offset_top = -315.5
+offset_right = 229.0
+offset_bottom = 315.5
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("2_3j4y3")
+expand_mode = 4
+stretch_mode = 4
+
+[node name="HeadSlot" type="PanelContainer" parent="MainLayout/RobotPanel"]
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 0
+offset_left = 344.0
+offset_top = 44.0
+offset_right = 408.0
+offset_bottom = 108.0
+script = ExtResource("3_mai7p")
+allowed_item_types = Array[String](["SCANNER"])
+
+[node name="ItemTexture" type="TextureRect" parent="MainLayout/RobotPanel/HeadSlot"]
+layout_mode = 2
+expand_mode = 2
+
+[node name="LeftArm" type="PanelContainer" parent="MainLayout/RobotPanel"]
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 0
+offset_left = 174.0
+offset_top = 314.0
+offset_right = 238.0
+offset_bottom = 378.0
+script = ExtResource("3_mai7p")
+allowed_item_types = Array[String](["TOOLS"])
+
+[node name="ItemTexture" type="TextureRect" parent="MainLayout/RobotPanel/LeftArm"]
+layout_mode = 2
+expand_mode = 2
+
+[node name="RightArm" type="PanelContainer" parent="MainLayout/RobotPanel"]
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 0
+offset_left = 516.0
+offset_top = 311.0
+offset_right = 580.0
+offset_bottom = 375.0
+script = ExtResource("3_mai7p")
+allowed_item_types = Array[String](["TOOLS"])
+
+[node name="ItemTexture" type="TextureRect" parent="MainLayout/RobotPanel/RightArm"]
+layout_mode = 2
+expand_mode = 2
+
+[node name="BodySlot" type="PanelContainer" parent="MainLayout/RobotPanel"]
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 0
+offset_left = 305.0
+offset_top = 180.0
+offset_right = 369.0
+offset_bottom = 244.0
+script = ExtResource("3_mai7p")
+allowed_item_types = Array[String](["BATTERY", "STORAGE"])
+
+[node name="ItemTexture" type="TextureRect" parent="MainLayout/RobotPanel/BodySlot"]
+layout_mode = 2
+expand_mode = 2
+
+[node name="BodySlot2" type="PanelContainer" parent="MainLayout/RobotPanel"]
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 0
+offset_left = 384.0
+offset_top = 180.0
+offset_right = 448.0
+offset_bottom = 244.0
+script = ExtResource("3_mai7p")
+allowed_item_types = Array[String](["BATTERY", "STORAGE"])
+
+[node name="ItemTexture" type="TextureRect" parent="MainLayout/RobotPanel/BodySlot2"]
+layout_mode = 2
+expand_mode = 2
+
+[node name="BodySlot3" type="PanelContainer" parent="MainLayout/RobotPanel"]
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 0
+offset_left = 304.0
+offset_top = 262.0
+offset_right = 368.0
+offset_bottom = 326.0
+script = ExtResource("3_mai7p")
+allowed_item_types = Array[String](["BATTERY", "STORAGE"])
+
+[node name="ItemTexture" type="TextureRect" parent="MainLayout/RobotPanel/BodySlot3"]
+layout_mode = 2
+expand_mode = 2
+
+[node name="BodySlot4" type="PanelContainer" parent="MainLayout/RobotPanel"]
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 0
+offset_left = 383.0
+offset_top = 262.0
+offset_right = 447.0
+offset_bottom = 326.0
+script = ExtResource("3_mai7p")
+allowed_item_types = Array[String](["BATTERY", "STORAGE"])
+
+[node name="ItemTexture" type="TextureRect" parent="MainLayout/RobotPanel/BodySlot4"]
+layout_mode = 2
+expand_mode = 2
+
+[node name="confirm_button" type="Button" parent="MainLayout/RobotPanel"]
+layout_mode = 0
+offset_right = 8.0
+offset_bottom = 8.0
+text = "CONFIRM"
+
+[node name="StatsPanel" type="Panel" parent="MainLayout/RobotPanel"]
+layout_mode = 0
+offset_top = 89.0
+offset_right = 156.0
+offset_bottom = 570.0
+
+[node name="StatsLabel" type="Label" parent="MainLayout/RobotPanel/StatsPanel"]
+layout_mode = 0
+offset_top = -38.0
+offset_right = 40.0
+offset_bottom = -15.0
+
+[node name="InventoryPanel" type="VBoxContainer" parent="MainLayout"]
+custom_minimum_size = Vector2(400, 0)
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MainLayout/InventoryPanel"]
+layout_mode = 2
+tooltip_text = "Yeah your INVENTORY, wow"
+text = "Inventory to be equiped"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ItemGrid" type="GridContainer" parent="MainLayout/InventoryPanel"]
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 6
+columns = 3
+
+[node name="InventorySlot1" type="PanelContainer" parent="MainLayout/InventoryPanel/ItemGrid"]
+custom_minimum_size = Vector2(128, 128)
+layout_mode = 2
+script = ExtResource("4_c1jpw")
+
+[node name="ItemTexture" type="TextureRect" parent="MainLayout/InventoryPanel/ItemGrid/InventorySlot1"]
+layout_mode = 2
+expand_mode = 2
+
+[node name="InventorySlot2" type="PanelContainer" parent="MainLayout/InventoryPanel/ItemGrid"]
+custom_minimum_size = Vector2(128, 128)
+layout_mode = 2
+script = ExtResource("4_c1jpw")
+item = ExtResource("6_mai7p")
+
+[node name="ItemTexture" type="TextureRect" parent="MainLayout/InventoryPanel/ItemGrid/InventorySlot2"]
+layout_mode = 2
+expand_mode = 2
+
+[node name="InventorySlot3" type="PanelContainer" parent="MainLayout/InventoryPanel/ItemGrid"]
+custom_minimum_size = Vector2(128, 128)
+layout_mode = 2
+script = ExtResource("4_c1jpw")
+item = ExtResource("6_mai7p")
+
+[node name="ItemTexture" type="TextureRect" parent="MainLayout/InventoryPanel/ItemGrid/InventorySlot3"]
+layout_mode = 2
+expand_mode = 2
+
+[node name="InventorySlot4" type="PanelContainer" parent="MainLayout/InventoryPanel/ItemGrid"]
+custom_minimum_size = Vector2(128, 128)
+layout_mode = 2
+script = ExtResource("4_c1jpw")
+item = ExtResource("6_mai7p")
+
+[node name="ItemTexture" type="TextureRect" parent="MainLayout/InventoryPanel/ItemGrid/InventorySlot4"]
+layout_mode = 2
+expand_mode = 2
+
+[node name="InventorySlot5" type="PanelContainer" parent="MainLayout/InventoryPanel/ItemGrid"]
+custom_minimum_size = Vector2(128, 128)
+layout_mode = 2
+script = ExtResource("4_c1jpw")
+item = ExtResource("6_mai7p")
+
+[node name="ItemTexture" type="TextureRect" parent="MainLayout/InventoryPanel/ItemGrid/InventorySlot5"]
+layout_mode = 2
+expand_mode = 2
+
+[node name="InventorySlot6" type="PanelContainer" parent="MainLayout/InventoryPanel/ItemGrid"]
+custom_minimum_size = Vector2(128, 128)
+layout_mode = 2
+script = ExtResource("4_c1jpw")
+item = ExtResource("6_mai7p")
+
+[node name="ItemTexture" type="TextureRect" parent="MainLayout/InventoryPanel/ItemGrid/InventorySlot6"]
+layout_mode = 2
+expand_mode = 2
+
+[node name="InventorySlot7" type="PanelContainer" parent="MainLayout/InventoryPanel/ItemGrid"]
+custom_minimum_size = Vector2(128, 128)
+layout_mode = 2
+script = ExtResource("4_c1jpw")
+item = ExtResource("6_mai7p")
+
+[node name="ItemTexture" type="TextureRect" parent="MainLayout/InventoryPanel/ItemGrid/InventorySlot7"]
+layout_mode = 2
+expand_mode = 2
+
+[node name="InventorySlot8" type="PanelContainer" parent="MainLayout/InventoryPanel/ItemGrid"]
+custom_minimum_size = Vector2(128, 128)
+layout_mode = 2
+script = ExtResource("4_c1jpw")
+item = ExtResource("6_mai7p")
+
+[node name="ItemTexture" type="TextureRect" parent="MainLayout/InventoryPanel/ItemGrid/InventorySlot8"]
+layout_mode = 2
+expand_mode = 2
+
+[node name="InventorySlot9" type="PanelContainer" parent="MainLayout/InventoryPanel/ItemGrid"]
+custom_minimum_size = Vector2(128, 128)
+layout_mode = 2
+script = ExtResource("4_c1jpw")
+item = ExtResource("6_mai7p")
+
+[node name="ItemTexture" type="TextureRect" parent="MainLayout/InventoryPanel/ItemGrid/InventorySlot9"]
+layout_mode = 2
+expand_mode = 2
+
+[node name="InventorySlot10" type="PanelContainer" parent="MainLayout/InventoryPanel/ItemGrid"]
+custom_minimum_size = Vector2(128, 128)
+layout_mode = 2
+script = ExtResource("4_c1jpw")
+item = ExtResource("6_mai7p")
+
+[node name="ItemTexture" type="TextureRect" parent="MainLayout/InventoryPanel/ItemGrid/InventorySlot10"]
+layout_mode = 2
+expand_mode = 2
+
+[node name="InventorySlot11" type="PanelContainer" parent="MainLayout/InventoryPanel/ItemGrid"]
+custom_minimum_size = Vector2(128, 128)
+layout_mode = 2
+script = ExtResource("4_c1jpw")
+item = ExtResource("6_mai7p")
+
+[node name="ItemTexture" type="TextureRect" parent="MainLayout/InventoryPanel/ItemGrid/InventorySlot11"]
+layout_mode = 2
+expand_mode = 2
+
+[node name="InventorySlot12" type="PanelContainer" parent="MainLayout/InventoryPanel/ItemGrid"]
+custom_minimum_size = Vector2(128, 128)
+layout_mode = 2
+script = ExtResource("4_c1jpw")
+item = ExtResource("6_mai7p")
+
+[node name="ItemTexture" type="TextureRect" parent="MainLayout/InventoryPanel/ItemGrid/InventorySlot12"]
+layout_mode = 2
+expand_mode = 2
+
+[connection signal="pressed" from="MainLayout/RobotPanel/confirm_button" to="." method="_on_confirm_button_pressed"]

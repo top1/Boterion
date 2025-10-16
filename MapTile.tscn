@@ -1,0 +1,38 @@
+[gd_scene load_steps=6 format=3 uid="uid://crnpkf5npcy86"]
+
+[ext_resource type="Script" uid="uid://xrc3rqtwd4u0" path="res://MapTile.gd" id="1_s8ube"]
+[ext_resource type="StyleBox" uid="uid://b503r8symy4c7" path="res://map_styles/habitation_style.tres" id="2_fofsc"]
+[ext_resource type="StyleBox" uid="uid://dulej6c78vkb3" path="res://map_styles/storage_style.tres" id="3_pjp1n"]
+[ext_resource type="StyleBox" uid="uid://cpaikph0j6fr2" path="res://map_styles/workshop_style.tres" id="4_peshy"]
+[ext_resource type="Texture2D" uid="uid://0earjonod7j4" path="res://icon.svg" id="5_12jld"]
+
+[node name="MapTile" type="PanelContainer"]
+custom_minimum_size = Vector2(80, 80)
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_s8ube")
+habitation_style = ExtResource("2_fofsc")
+storage_style = ExtResource("3_pjp1n")
+workshop_style = ExtResource("4_peshy")
+habitation_icon = ExtResource("5_12jld")
+storage_icon = ExtResource("5_12jld")
+workshop_icon = ExtResource("5_12jld")
+robot_icon = ExtResource("5_12jld")
+corridor_icon = ExtResource("5_12jld")
+connector_icon = ExtResource("5_12jld")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+custom_minimum_size = Vector2(0, 150)
+layout_mode = 2
+
+[node name="Icon" type="TextureRect" parent="VBoxContainer"]
+layout_mode = 2
+stretch_mode = 3
+
+[node name="InfoLabel" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+horizontal_alignment = 1
+vertical_alignment = 1

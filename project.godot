@@ -10,13 +10,14 @@ config_version=5
 
 [application]
 
-config/name="Boterion"
-run/main_scene="uid://bykhhuqt4oyd2"
-config/features=PackedStringArray("4.5", "GL Compatibility")
+config/name="RobotScavangersInSpace"
+run/main_scene="uid://nf3v7x6euql7"
+config/features=PackedStringArray("4.5", "Mobile")
 config/icon="res://icon.svg"
 
 [autoload]
 
+GameState="*res://GameState.gd"
 RobotState="*res://RobotState.gd"
 
 [rendering]
