@@ -63,22 +63,22 @@ func _generate_row(id_prefix: String) -> Array[RoomData]:
 		new_room.room_id = "%s%d" % [id_prefix, room_counter]
 		
 		# Generiere zufällige Türstärke
-		new_room.door_strength = rng.randi_range(10, 200)
+		new_room.door_strength = rng.randi_range(10, new_room.size*42)
 
 		# Generiere zufällige Beute für jede Ressource
-		var electronics_amount = rng.randi_range(10, 50)
+		var electronics_amount = rng.randi_range(10, new_room.size*21)
 		new_room.loot_pool["electronics"]["initial"] = electronics_amount
 		new_room.loot_pool["electronics"]["current"] = electronics_amount
 
-		var scrap_amount = rng.randi_range(20, 100)
+		var scrap_amount = rng.randi_range(20, new_room.size*69)
 		new_room.loot_pool["scrap_metal"]["initial"] = scrap_amount
 		new_room.loot_pool["scrap_metal"]["current"] = scrap_amount
 
-		var blueprints_amount = rng.randi_range(0, 2)
+		var blueprints_amount = rng.randi_range(0, new_room.size)
 		new_room.loot_pool["blueprints"]["initial"] = blueprints_amount
 		new_room.loot_pool["blueprints"]["current"] = blueprints_amount
 
-		var food_amount = rng.randi_range(5, 25)
+		var food_amount = rng.randi_range(5, new_room.size*3)
 		new_room.loot_pool["food"]["initial"] = food_amount
 		new_room.loot_pool["food"]["current"] = food_amount
 		
