@@ -19,7 +19,7 @@ signal storage_changed(current_storage, max_storage)
 
 # --- Basis-Werte des Roboters ---
 var base_max_energy: int = 60
-var base_max_storage: int = 20
+var base_max_storage: int = 500
 
 # --- Boni durch Ausrüstung ---
 var bonus_max_energy: int = 0

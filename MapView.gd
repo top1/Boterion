@@ -25,6 +25,9 @@ const MapGenerator = preload("res://MapGenerator.gd")
 @onready var loot_energy_label = %LootEnergyLabel
 @onready var energy_bar_label = %EnergyBarLabel
 @onready var execute_plan_button = %ExecutePlanButton
+@onready var debug_inspector_panel = %DebugInspectorPanel
+@onready var debug_visible_label = %DebugVisibleLabel
+@onready var debug_hidden_label = %DebugHiddenLabel
 
 var planned_remaining_energy: int = 0
 var mission_plan: Array[Dictionary] = []
@@ -109,7 +112,7 @@ func _on_room_selected(room_data: RoomData, room_node: Button = null):
 
 	# --- 2. ZUSTAND PRÜFEN ---
 	# Prüfe, welche Aktionen für diesen Raum bereits im Plan sind
-	var is_open_planned = is_action_planned_for_room(room_data.room_id, "OPEN")
+	var is_open_or_planned = room_data.is_door_open or is_action_planned_for_room(room_data.room_id, "OPEN")
 	var is_loot_scavenge_planned = is_action_planned_for_room(room_data.room_id, "LOOT") or is_action_planned_for_room(room_data.room_id, "SCAVENGE")
 
 	# --- 3. LOGIK-ZWEIGE ---
@@ -121,7 +124,7 @@ func _on_room_selected(room_data: RoomData, room_node: Button = null):
 		return
 
 	# ZUSTAND B: "OPEN" IST GEPLANT -> ZEIGE DIE LOOT/SCAVENGE-ANSICHT
-	elif is_open_planned:
+	elif is_open_or_planned:
 		# --- B.1: VORBERECHNUNGEN ---
 		var max_energy_on_site = get_max_available_energy_for_action(room_data.distance)
 		
@@ -167,7 +170,8 @@ func _on_room_selected(room_data: RoomData, room_node: Button = null):
 		open_button.hide()
 		loot_button.show()
 		scavenge_button.show()
-		
+		if debug_inspector_panel.visible:
+			update_debug_inspector()
 		return # Wichtig: Funktion hier beenden
 
 	# ZUSTAND C: STANDARD-VORSCHAU (NOCH NICHTS GEPLANT)
@@ -188,7 +192,7 @@ func _on_room_selected(room_data: RoomData, room_node: Button = null):
 				can_scan = true
 		
 		var can_open = false
-		if not is_action_planned_for_room(room_data.room_id, "OPEN"):
+		if not room_data.is_door_open and not is_action_planned_for_room(room_data.room_id, "OPEN"):
 			var total_open_cost = travel_cost + room_data.door_strength + (room_data.distance * RobotState.MOVE_COST_PER_UNIT)
 			if planned_remaining_energy >= total_open_cost:
 				can_open = true
@@ -496,14 +500,18 @@ func _on_execute_plan_pressed():
 				print("Room %s is now scanned." % room.room_id)
 				
 			"OPEN":
-				# Hier könntest du später einen "is_open"-Status setzen
+				room.is_door_open = true
 				print("Door to room %s opened." % room.room_id)
 				
 			"SCAVENGE":
-				var energy_spent = mission.cost
+				var energy_planned = mission.cost
+				var energy_actually_spent = 0
 				# KORRIGIERT: Verwende RobotState
-				var scavenged_e = min(room.loot_pool.electronics.current, energy_spent / RobotState.ENERGY_PER_ELECTRONIC)
-				var scavenged_s = min(room.loot_pool.scrap_metal.current, energy_spent / RobotState.ENERGY_PER_SCRAP)
+				var scavenged_e = min(room.loot_pool.electronics.current, energy_planned / RobotState.ENERGY_PER_ELECTRONIC)
+				var scavenged_s = min(room.loot_pool.scrap_metal.current, energy_planned / RobotState.ENERGY_PER_SCRAP)
+				
+				energy_actually_spent += scavenged_e * RobotState.ENERGY_PER_ELECTRONIC
+				energy_actually_spent += scavenged_s * RobotState.ENERGY_PER_SCRAP
 				
 				collected_loot["electronics"] = collected_loot.get("electronics", 0) + scavenged_e
 				collected_loot["scrap_metal"] = collected_loot.get("scrap_metal", 0) + scavenged_s
@@ -511,46 +519,143 @@ func _on_execute_plan_pressed():
 				room.loot_pool.electronics.current -= scavenged_e
 				room.loot_pool.scrap_metal.current -= scavenged_s
 				
+				var unused_energy = energy_planned - energy_actually_spent
+				if unused_energy > 0:
+					collected_loot["energy_refund"] = collected_loot.get("energy_refund", 0) + unused_energy
+				
 			"LOOT":
-				var energy_spent = mission.cost
+				var energy_planned = mission.cost
+				var energy_actually_spent = 0
 				# KORRIGIERT: Verwende RobotState
-				var looted_b = min(room.loot_pool.blueprints.current, energy_spent / RobotState.ENERGY_PER_BLUEPRINT)
-				var looted_f = min(room.loot_pool.food.current, energy_spent / RobotState.ENERGY_PER_FOOD)
+				var looted_b = min(room.loot_pool.blueprints.current, energy_planned / RobotState.ENERGY_PER_BLUEPRINT)
+				var looted_f = min(room.loot_pool.food.current, energy_planned / RobotState.ENERGY_PER_FOOD)
+				
+				energy_actually_spent += looted_b * RobotState.ENERGY_PER_BLUEPRINT
+				energy_actually_spent += looted_f * RobotState.ENERGY_PER_FOOD
 				
 				collected_loot["blueprints"] = collected_loot.get("blueprints", 0) + looted_b
 				collected_loot["food"] = collected_loot.get("food", 0) + looted_f
 				
 				room.loot_pool.blueprints.current -= looted_b
 				room.loot_pool.food.current -= looted_f
+				
+				var unused_energy = energy_planned - energy_actually_spent
+				if unused_energy > 0:
+					collected_loot["energy_refund"] = collected_loot.get("energy_refund", 0) + unused_energy
 
 	# --- FINALE BERECHNUNGEN & ZUSTANDS-UPDATES ---
 	
-	# 1. Berechne die finalen Energiekosten und aktualisiere den Roboter
+	## 1. Berechne die finalen Energiekosten und aktualisiere den Roboter
+	#var total_actions_cost = RobotState.MAX_ENERGY - planned_remaining_energy
+	#var return_cost = get_final_return_cost()
+	## KORRIGIERT: Verwende RobotState
+	#RobotState.current_energy -= (total_actions_cost + return_cost)
+	#
+	## 2. Füge die gesammelte Beute zum globalen Inventar/Lager hinzu
+	#var total_items_collected = 0
+	#for item_name in collected_loot:
+		#total_items_collected += collected_loot[item_name]
+	#
+	## KORRIGIERT: Verwende RobotState
+	#RobotState.current_storage += total_items_collected # Vereinfachung!
+	#
+	#
+	#
+	## 3. Bereite den nächsten Tag vor (Plan zurücksetzen)
+	#mission_plan.clear()
+	#
+	## 4. Zeige den Belohnungs-Screen an
+	## WICHTIG: Wir müssen zuerst sicherstellen, dass die ScreenManager-Struktur bereit ist.
+	## Siehe Schritt 3 für die Code-Änderungen in anderen Dateien.
+	#var screen_manager = get_tree().get_first_node_in_group("ScreenManager")
+	#if screen_manager:
+		## Hole den RewardScreen Node vom Manager
+		#var reward_screen = screen_manager.get_node("RewardScreen")
+		#if reward_screen and reward_screen.has_method("show_rewards"):
+			#reward_screen.show_rewards(collected_loot)
+		#
+		## Sage dem Manager, den Screen zu wechseln
+		#screen_manager.show_screen("reward")
+		# 1. Hole den Energie-Refund sicher aus dem Dictionary.
+#    .get() ist der sichere Weg, einen Wert zu holen, ohne einen Fehler zu erzeugen.
+	var total_refund = collected_loot.get("energy_refund", 0)
+
+	# 2. Entferne den Refund-Eintrag aus dem Dictionary, damit er nicht
+	#    im Reward-Screen als "Beute" angezeigt wird.
+	#if collected_loot.has("energy_refund"):
+		#collected_loot.erase("energy_refund")
+
+	# 3. Berechne die finalen Energiekosten und aktualisiere den Roboter
 	var total_actions_cost = RobotState.MAX_ENERGY - planned_remaining_energy
 	var return_cost = get_final_return_cost()
-	# KORRIGIERT: Verwende RobotState
+
+	# Wende zuerst den Refund an, dann ziehe die Kosten ab.
+	RobotState.current_energy += total_refund
 	RobotState.current_energy -= (total_actions_cost + return_cost)
-	
-	# 2. Füge die gesammelte Beute zum globalen Inventar/Lager hinzu
+		
+	# 4. Füge die gesammelte Beute zum globalen Lager hinzu
 	var total_items_collected = 0
 	for item_name in collected_loot:
 		total_items_collected += collected_loot[item_name]
-	
-	# KORRIGIERT: Verwende RobotState
-	RobotState.current_storage += total_items_collected # Vereinfachung!
-	
-	# 3. Bereite den nächsten Tag vor (Plan zurücksetzen)
+	RobotState.current_storage += total_items_collected
+
+	# 5. Bereite den nächsten Tag vor
 	mission_plan.clear()
-	
-	# 4. Zeige den Belohnungs-Screen an
-	# WICHTIG: Wir müssen zuerst sicherstellen, dass die ScreenManager-Struktur bereit ist.
-	# Siehe Schritt 3 für die Code-Änderungen in anderen Dateien.
+		
+	# 6. Zeige den Belohnungs-Screen an
 	var screen_manager = get_tree().get_first_node_in_group("ScreenManager")
 	if screen_manager:
-		# Hole den RewardScreen Node vom Manager
 		var reward_screen = screen_manager.get_node("RewardScreen")
 		if reward_screen and reward_screen.has_method("show_rewards"):
 			reward_screen.show_rewards(collected_loot)
-		
-		# Sage dem Manager, den Screen zu wechseln
 		screen_manager.show_screen("reward")
+
+# Diese Funktion wird von Godot bei jedem Tastendruck aufgerufen
+func _unhandled_input(event: InputEvent):
+	# Prüfe, ob die Taste "toggle_debug_view" gerade gedrückt wurde
+	if event.is_action_pressed("toggle_debug_view"):
+		# Schalte die Sichtbarkeit des Panels um
+		debug_inspector_panel.visible = not debug_inspector_panel.visible
+		# Akzeptiere das Event, damit es nicht weiterverarbeitet wird
+		get_viewport().set_input_as_handled()
+		
+		# Wenn das Panel jetzt sichtbar ist, aktualisiere die Daten
+		if debug_inspector_panel.visible:
+			update_debug_inspector()
+
+# Diese Funktion füllt das Debug-Panel mit den Daten des aktuell gewählten Raumes
+func update_debug_inspector():
+	# Wenn kein Raum ausgewählt ist, zeige eine Standardnachricht
+	if not current_selected_room:
+		debug_visible_label.text = "No room selected."
+		debug_hidden_label.text = ""
+		return
+
+	var room = current_selected_room
+	
+	# --- DATEN, DIE DER SPIELER SIEHT (ODER SEHEN KÖNNTE) ---
+	var visible_text = "--- PLAYER VISIBLE DATA ---\n"
+	visible_text += "Room ID: %s\n" % room.room_id
+	visible_text += "Distance: %d\n" % room.distance
+	if room.is_scanned:
+		visible_text += "Door Strength: %d\n" % room.door_strength
+		visible_text += "Loot (Current/Initial):\n"
+		visible_text += "  E: %d/%d, S: %d/%d\n" % [room.loot_pool.electronics.current, room.loot_pool.electronics.initial, room.loot_pool.scrap_metal.current, room.loot_pool.scrap_metal.initial]
+		visible_text += "  B: %d/%d, F: %d/%d" % [room.loot_pool.blueprints.current, room.loot_pool.blueprints.initial, room.loot_pool.food.current, room.loot_pool.food.initial]
+	else:
+		visible_text += "Status: UNSCANNED"
+		
+	debug_visible_label.text = visible_text
+	
+	# --- DATEN, DIE VERSTECKT SIND (DIE "WAHRHEIT") ---
+	var hidden_text = "\n--- HIDDEN DEBUG DATA ---\n"
+	hidden_text += "is_scanned: %s\n" % room.is_scanned
+	hidden_text += "is_door_open: %s\n" % room.is_door_open # Annahme, du hast diese Variable hinzugefügt
+	hidden_text += "Door Strength (real): %d\n" % room.door_strength
+	hidden_text += "Loot Pool (real):\n"
+	hidden_text += "  E: %s\n" % str(room.loot_pool.electronics)
+	hidden_text += "  S: %s\n" % str(room.loot_pool.scrap_metal)
+	hidden_text += "  B: %s\n" % str(room.loot_pool.blueprints)
+	hidden_text += "  F: %s\n" % str(room.loot_pool.food)
+	
+	debug_hidden_label.text = hidden_text
