@@ -101,9 +101,9 @@ func draw_map():
 		placeholder.add_child(new_block)
 		bottom_row_container.add_child(placeholder)
 
+# Ersetze die komplette Funktion mit dieser Version
 func _on_room_selected(room_data: RoomData, room_node: Button = null):
 	# --- 1. SETUP ---
-	# Merke dir den aktuellen Raum und verstecke erstmal alle Aktions-UIs
 	current_selected_room = room_data
 	if room_node:
 		current_selected_button = room_node
@@ -111,68 +111,94 @@ func _on_room_selected(room_data: RoomData, room_node: Button = null):
 	loot_action_container.hide()
 
 	# --- 2. ZUSTAND PRÜFEN ---
-	# Prüfe, welche Aktionen für diesen Raum bereits im Plan sind
 	var is_open_or_planned = room_data.is_door_open or is_action_planned_for_room(room_data.room_id, "OPEN")
 	var is_loot_scavenge_planned = is_action_planned_for_room(room_data.room_id, "LOOT") or is_action_planned_for_room(room_data.room_id, "SCAVENGE")
 
 	# --- 3. LOGIK-ZWEIGE ---
 
 	# ZUSTAND A: EINE FINALE AKTION (LOOT/SCAVENGE) IST BEREITS GEPLANT
-	# In diesem Fall gibt es nichts mehr zu tun. Zeige eine Nachricht und beende.
 	if is_loot_scavenge_planned:
 		room_info_label.text = "Final action for Room %s is already in the plan." % room_data.room_id
 		return
 
-	# ZUSTAND B: "OPEN" IST GEPLANT -> ZEIGE DIE LOOT/SCAVENGE-ANSICHT
+	# ZUSTAND B: "OPEN" IST GEPLANT ODER SCHON OFFEN -> ZEIGE DIE LOOT/SCAVENGE-ANSICHT
 	elif is_open_or_planned:
 		# --- B.1: VORBERECHNUNGEN ---
 		var max_energy_on_site = get_max_available_energy_for_action(room_data.distance)
-		
-		# HIER WIRD 'max_investable_energy' KORREKT DEKLARIERT!
-		# Es ist die kleinste Zahl aus (Energie vor Ort ODER freier Lagerplatz)
 		var max_investable_energy = min(max_energy_on_site, RobotState.MAX_STORAGE - RobotState.current_storage)
 
 		# --- B.2: INFO-TEXT AUFBAUEN ---
 		var info_text = "ROOM %s - ACTION PLANNING\n" % room_data.room_id
 		info_text += "--------------------\n"
-		info_text += "Energy available on site: %d\n" % max_energy_on_site
-		info_text += "Available Storage: %d\n" % (RobotState.MAX_STORAGE - RobotState.current_storage)
+		info_text += "Energy on site: %d | Storage: %d\n" % [max_energy_on_site, (RobotState.MAX_STORAGE - RobotState.current_storage)]
+		info_text += "Max investable Energy: %d\n" % max_investable_energy
 		info_text += "--------------------\n"
-		info_text += "Max. Potential (for %d Energy):\n" % max_investable_energy
 		
-		var max_e_theo = max_investable_energy / RobotState.ENERGY_PER_ELECTRONIC
-		var max_s_theo = max_investable_energy / RobotState.ENERGY_PER_SCRAP
-		var max_b_theo = max_investable_energy / RobotState.ENERGY_PER_BLUEPRINT
-		var max_f_theo = max_investable_energy / RobotState.ENERGY_PER_FOOD
-
-		if room_data.is_scanned:
-			max_e_theo = min(max_e_theo, room_data.loot_pool.electronics.current)
-			max_s_theo = min(max_s_theo, room_data.loot_pool.scrap_metal.current)
-			max_b_theo = min(max_b_theo, room_data.loot_pool.blueprints.current)
-			max_f_theo = min(max_f_theo, room_data.loot_pool.food.current)
-			info_text += "Scavenge: %d E, %d S\n" % [max_e_theo, max_s_theo]
-			info_text += "Loot: %d B, %d F" % [max_b_theo, max_f_theo]
+		# --- B.3: UI ANZEIGEN UND KONFIGURIEREN (DIE KOMPLETTE LOGIK) ---
+		if room_data.is_completely_empty():
+			# GEÄNDERT: Baue den Text für leere Räume komplett neu und kurz auf
+			info_text = "ROOM %s - ACTION PLANNING\n" % room_data.room_id
+			info_text += "--------------------\n"
+			info_text += "ROOM IS COMPLETELY EMPTY."
+			
+			loot_action_container.hide()
+			action_buttons_container.show()
+			scan_button.hide(); open_button.hide(); loot_button.show(); scavenge_button.show()
+			loot_button.disabled = true
+			scavenge_button.disabled = true
 		else:
-			info_text += "Scavenge (Theoretical): %d E, %d S\n" % [max_e_theo, max_s_theo]
-			info_text += "Loot (Theoretical): %d B, %d F" % [max_b_theo, max_f_theo]
+			# Dieser Teil wird nur ausgeführt, wenn der Raum NICHT leer ist
+			var max_e_theo = max_investable_energy / RobotState.ENERGY_PER_ELECTRONIC
+			var max_s_theo = max_investable_energy / RobotState.ENERGY_PER_SCRAP
+			var max_b_theo = max_investable_energy / RobotState.ENERGY_PER_BLUEPRINT
+			var max_f_theo = max_investable_energy / RobotState.ENERGY_PER_FOOD
+
+			if room_data.is_scanned:
+				max_e_theo = min(max_e_theo, room_data.loot_pool.electronics.current)
+				max_s_theo = min(max_s_theo, room_data.loot_pool.scrap_metal.current)
+				max_b_theo = min(max_b_theo, room_data.loot_pool.blueprints.current)
+				max_f_theo = min(max_f_theo, room_data.loot_pool.food.current)
+				info_text += "Potential Scavenge: %d E, %d S\n" % [max_e_theo, max_s_theo]
+				info_text += "Potential Loot: %d B, %d F" % [max_b_theo, max_f_theo]
+			else:
+				info_text += "Potential (Theoretical):\n"
+				info_text += "Scavenge: %d E, %d S\n" % [max_e_theo, max_s_theo]
+				info_text += "Loot: %d B, %d F" % [max_b_theo, max_f_theo]
+
+			# UI Konfiguration
+			loot_slider.max_value = max_investable_energy
+			loot_slider.min_value = 0
+			loot_slider.value = 0
+			_on_loot_slider_changed(0)
+			
+			loot_action_container.show()
+			action_buttons_container.show()
+			scan_button.hide(); open_button.hide(); loot_button.show(); scavenge_button.show()
+			
+			loot_button.disabled = false
+			scavenge_button.disabled = false
+			
+			if room_data.is_scavenge_empty():
+				scavenge_button.disabled = true
+				info_text += "\n\nScavenge resources depleted."
+			if room_data.is_loot_empty():
+				loot_button.disabled = true
+				info_text += "\n\nLoot items depleted."
+
+			match room_data.looting_state:
+				RoomData.LootingState.LOOTING:
+					scavenge_button.disabled = true
+					if not room_data.is_scavenge_empty():
+						info_text += "\n\nLooting in progress. Scavenging locked."
+				RoomData.LootingState.SCAVENGING:
+					loot_button.disabled = true
+					if not room_data.is_loot_empty():
+						info_text += "\n\nScavenging in progress. Looting locked."
 		
 		room_info_label.text = info_text
-		
-		# --- B.3: UI ANZEIGEN UND KONFIGURIEREN ---
-		loot_slider.max_value = max_investable_energy
-		loot_slider.min_value = 0
-		loot_slider.value = 0
-		_on_loot_slider_changed(0)
-		
-		loot_action_container.show()
-		action_buttons_container.show()
-		scan_button.hide()
-		open_button.hide()
-		loot_button.show()
-		scavenge_button.show()
 		if debug_inspector_panel.visible:
 			update_debug_inspector()
-		return # Wichtig: Funktion hier beenden
+		return
 
 	# ZUSTAND C: STANDARD-VORSCHAU (NOCH NICHTS GEPLANT)
 	else:
@@ -181,12 +207,17 @@ func _on_room_selected(room_data: RoomData, room_node: Button = null):
 		
 		var info_text = "ROOM %s PREVIEW:\n" % room_data.room_id
 		info_text += "--------------------\n"
-		info_text += "Travel Cost: %d Energy\n" % travel_cost
+		info_text += "Travel Cost to here: %d Energy\n" % travel_cost
 		info_text += "Status: %s\n" % ("SCANNED" if room_data.is_scanned else "UNSCANNED")
 		
+		# NEU: Wenn der Raum gescannt ist, zeige den Inhalt an
+		if room_data.is_scanned:
+			info_text += "Contents:\n"
+			info_text += "  Scavenge: %d E, %d S\n" % [room_data.loot_pool.electronics.current, room_data.loot_pool.scrap_metal.current]
+			info_text += "  Loot: %d B, %d F\n" % [room_data.loot_pool.blueprints.current, room_data.loot_pool.food.current]
+
 		var can_scan = false
 		if not room_data.is_scanned and not is_action_planned_for_room(room_data.room_id, "SCAN"):
-			# Gesamtkosten = Hinweg + Aktion + Rückweg
 			var total_scan_cost = travel_cost + RobotState.SCAN_COST + (room_data.distance * RobotState.MOVE_COST_PER_UNIT)
 			if planned_remaining_energy >= total_scan_cost:
 				can_scan = true
@@ -205,6 +236,11 @@ func _on_room_selected(room_data: RoomData, room_node: Button = null):
 			open_button.visible = can_open
 			loot_button.hide()
 			scavenge_button.hide()
+		else:
+			action_buttons_container.hide()
+
+		if debug_inspector_panel.visible:
+			update_debug_inspector()
 
 func _on_scan_pressed():
 	if not current_selected_room: return
@@ -492,7 +528,11 @@ func _on_execute_plan_pressed():
 	# Gehe durch jede geplante Mission
 	for mission in mission_plan:
 		var room = mission.target_room
-		
+		if room.looting_state == RoomData.LootingState.NONE:
+			if mission.type == "LOOT":
+				room.looting_state = RoomData.LootingState.LOOTING
+			elif mission.type == "SCAVENGE":
+				room.looting_state = RoomData.LootingState.SCAVENGING
 		# Führe die Aktion aus
 		match mission.type:
 			"SCAN":
