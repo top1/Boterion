@@ -27,7 +27,7 @@ const RoomBlockScene = preload("res://RoomBlock.tscn")
 @onready var debug_inspector_panel = %DebugInspectorPanel
 @onready var debug_visible_label = %DebugVisibleLabel
 @onready var debug_hidden_label = %DebugHiddenLabel
-@onready var to_workshop_button = %toWorkshop
+@onready var to_robot_equip_button = %toRobotEquip
 
 var planned_remaining_energy: int = 0
 var mission_plan: Array[Dictionary] = []
@@ -335,7 +335,7 @@ func update_mission_plan_display():
 	# --- 4. FINALES UI-UPDATE ---
 	mission_list_label.text = display_text
 	remove_last_mission_button.disabled = mission_plan.is_empty()
-	to_workshop_button.disabled = not mission_plan.is_empty()
+	to_robot_equip_button.disabled = not mission_plan.is_empty()
 	
 func _update_energy_bar_display():
 	# Hole dir die Kosten für den finalen Rückweg
@@ -697,8 +697,7 @@ func update_debug_inspector():
 	
 	debug_hidden_label.text = hidden_text
 
-
-func _on_to_workshop_pressed() -> void:
+func _on_to_robot_equip_pressed() -> void:
 	if is_plan_empty():
 		var screen_manager = get_tree().get_first_node_in_group("ScreenManager")
 		if screen_manager:

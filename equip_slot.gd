@@ -24,10 +24,6 @@ func _ready():
 			main_screen = current_node
 			break # Stop searching once we find it
 	
-	# This print statement will confirm if the connection was successful.
-	# You can remove it once you see it works.
-	print("Slot '", name, "' is ready. Main screen found: ", main_screen)
-	
 	update_display()
 
 func update_display():

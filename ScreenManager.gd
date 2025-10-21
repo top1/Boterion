@@ -13,7 +13,6 @@ var screens: Dictionary
 func _ready():
 	# Populate the dictionary
 	screens = {
-		"main_menu": main_menu_screen,
 		"equipment": equip_screen,
 		"game": game_screen,
 		"reward": reward_screen
