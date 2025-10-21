@@ -5,7 +5,6 @@ extends Control
 # Wir laden die Szene für unsere Raum-Blöcke vorab.
 const RoomBlockScene = preload("res://RoomBlock.tscn")
 # Wir laden das Skript für den Kartengenerator.
-const MapGenerator = preload("res://MapGenerator.gd")
 
 # Referenzen zu den Containern in unserer Szene.
 @onready var top_row_container = $MarginContainer/VBoxContainer/ScrollContainer/MarginContainer/ScrollContent/VBoxContainer/TopRowContainer
@@ -33,7 +32,6 @@ var planned_remaining_energy: int = 0
 var mission_plan: Array[Dictionary] = []
 var last_position_in_plan: int = 0
 # Eine Instanz unseres Generators.
-var map_generator = MapGenerator.new()
 var current_selected_room: RoomData = null
 var current_selected_button: Button = null
 # Die Seed für die Kartengenerierung.
@@ -41,9 +39,8 @@ var map_seed = 1337
 
 
 func _ready():
-	# Die _ready()-Funktion ist NUR noch für das einmalige Verbinden
-	# von Signalen zuständig. Sie setzt keinen Zustand mehr.
-	draw_map()
+	# Einmalige Einrichtung, die nie wieder passiert:
+	RobotState.initialize_map_if_needed()
 	scan_button.pressed.connect(_on_scan_pressed)
 	open_button.pressed.connect(_on_open_pressed)
 	loot_button.pressed.connect(_on_loot_pressed)
@@ -52,6 +49,9 @@ func _ready():
 	loot_slider.value_changed.connect(_on_loot_slider_changed)
 	execute_plan_button.pressed.connect(_on_execute_plan_pressed)
 	
+	# Rufe show_screen() auf, um den initialen Zustand des Spiels zu zeichnen.
+	# Diese Funktion wird von nun an vom ScreenManager für jeden neuen Tag aufgerufen.
+	show_screen()
 # Diese Funktion löscht die alte Karte und zeichnet eine neue.
 func draw_map():
 	# 1. Alte Raum-Blöcke entfernen, falls vorhanden.
@@ -61,10 +61,8 @@ func draw_map():
 		child.queue_free()
 
 	# 2. Neue Kartendaten generieren.
-	var map_data = map_generator.generate_map_data(map_seed)
-	var top_rooms: Array[RoomData] = map_data.top
-	var bottom_rooms: Array[RoomData] = map_data.bottom
-
+	var top_rooms: Array[RoomData] = RobotState.map_data.top
+	var bottom_rooms: Array[RoomData] = RobotState.map_data.bottom
 	# 3. Obere Raumreihe füllen.
 	#for room_data in top_rooms:
 		#var new_block = RoomBlockScene.instantiate()
@@ -501,13 +499,15 @@ func _on_confirm_pressed() -> void:
 func show_screen():
 	# 1. Mache den Screen sichtbar.
 	show()
-	
-	# 2. SYNCHRONISIERE DEN ZUSTAND, WENN ES ANGEBRACHT IST
+	draw_map()
+	# 2. SYNCHRONISIERE DEN ZUSTAND FÜR EINEN NEUEN TAG
 	# Wenn der Missionsplan leer ist, bedeutet das, wir beginnen eine neue Planung.
-	# In diesem Fall holen wir uns den frischesten Energiewert vom RobotState.
-	# (Das ist der Wert, der nach dem Bestätigen im EquipScreen gesetzt wurde).
 	if mission_plan.is_empty():
+		# Hole den frischesten Energiewert vom RobotState.
 		planned_remaining_energy = RobotState.current_energy
+		
+		# KORREKTUR: Setze die Position des Roboters zurück zur Basis!
+		last_position_in_plan = 0
 	
 	# 3. Zeichne die UI basierend auf dem (jetzt korrekten) Zustand neu.
 	update_mission_plan_display()

@@ -1,69 +1,61 @@
-# RobotState.gd - NEUE, VERBESSERTE VERSION
+# RobotState.gd
 extends Node
+
+signal energy_changed(new_max_energy)
+
+# --- KARTEN-VERWALTUNG ---
+var map_data: Dictionary = {}
+const MapGenerator = preload("res://MapGenerator.gd")
+var map_generator = MapGenerator.new()
+var map_seed = 1337
+
+# --- BASIS-WERTE ---
+var base_max_energy: int = 60
+var base_max_storage: int = 50
+
+# --- BONI & MAXIMALWERTE ---
+var bonus_max_energy: int = 0
+var bonus_max_storage: int = 0
+var MAX_ENERGY: int = 60
+var MAX_STORAGE: int = 50
+
+# --- LIVE-WERTE ---
+var current_energy: int = 60
+var current_storage: int = 0
 
 # --- KOSTEN-KONSTANTEN ---
 const MOVE_COST_PER_UNIT: int = 10
-const SCAN_COST: int = 20
+const SCAN_COST: int = 5
+const ENERGY_PER_ELECTRONIC: int = 3
+const ENERGY_PER_SCRAP: int = 2
+const ENERGY_PER_BLUEPRINT: int = 10
+const ENERGY_PER_FOOD: int = 4
 
-# --- NEUE KOSTEN FÜR LOOT/SCAVENGE ---
-# "Scavenge" ist für Materialien
-const ENERGY_PER_ELECTRONIC: int = 8
-const ENERGY_PER_SCRAP: int = 5
-
-# "Loot" ist für wertvollere Gegenstände
-const ENERGY_PER_BLUEPRINT: int = 50
-const ENERGY_PER_FOOD: int = 10
-# --- Signale ---
-signal energy_changed(current_energy, max_energy)
-signal storage_changed(current_storage, max_storage)
-
-# --- Basis-Werte des Roboters ---
-var base_max_energy: int = 60
-var base_max_storage: int = 500
-
-# --- Boni durch Ausrüstung ---
-var bonus_max_energy: int = 0
-var bonus_max_storage: int = 0
-
-# --- Finale, berechnete Maximalwerte ---
-var MAX_ENERGY: int
-var MAX_STORAGE: int
-
-# --- Aktuelle Werte ---
-var current_energy: int = 0: 
-	set(value):
-		current_energy = clamp(value, 0, MAX_ENERGY)
-		emit_signal("energy_changed", current_energy, MAX_ENERGY)
-
-var current_storage: int = 0:
-	set(value):
-		current_storage = clamp(value, 0, MAX_STORAGE)
-		emit_signal("storage_changed", current_storage, MAX_STORAGE)
-
-# --- NEUE ZENTRALE UPDATE-FUNKTION ---
-# Der EquipScreen ruft diese Funktion auf und meldet nur die reinen Boni.
-func update_equipment_bonuses(energy_bonus: int, storage_bonus: int):
-	print("Boni erhalten: %d Energie, %d Lager" % [energy_bonus, storage_bonus])
-	self.bonus_max_energy = energy_bonus
-	self.bonus_max_storage = storage_bonus
-	_recalculate_total_stats()
-
-# Interne Funktion, um die finalen Werte neu zu berechnen.
-func _recalculate_total_stats():
-	# 1. Berechne die neuen Maximalwerte
-	MAX_ENERGY = base_max_energy + bonus_max_energy
-	MAX_STORAGE = base_max_storage + bonus_max_storage
-	
-	# 2. Passe die aktuellen Werte an und sende Signale aus
-	#    (self.current_energy ruft die set-Funktion auf)
-	self.current_energy = MAX_ENERGY
-	self.current_storage = current_storage
 
 func _ready():
-	# 1. Berechne die finalen Maximalwerte zum ersten Mal.
-	_recalculate_total_stats()
-	# 2. Setze die Start-Energie des Roboters auf den neuen Maximalwert.
-	self.current_energy = MAX_ENERGY
-	
+	_recalculate_max_values()
+
+# Stellt sicher, dass die Karte nur einmal am Anfang generiert wird.
+func initialize_map_if_needed():
+	if map_data.is_empty():
+		print("--- ROBOTSTATE: Generating NEW persistent map data ---")
+		map_data = map_generator.generate_map_data(map_seed)
+	else:
+		print("--- ROBOTSTATE: Using EXISTING persistent map data ---")
+
+# Berechnet die Max-Werte neu UND setzt die aktuelle Energie auf das neue Maximum.
+func _recalculate_max_values():
+	MAX_ENERGY = base_max_energy + bonus_max_energy
+	MAX_STORAGE = base_max_storage + bonus_max_storage
+	current_energy = MAX_ENERGY # Der Bugfix von vorhin
+	emit_signal("energy_changed", MAX_ENERGY)
+
+# Funktion, die vom EquipScreen aufgerufen wird.
+func update_equipment_bonuses(bonus_energy: int, bonus_storage: int):
+	bonus_max_energy = bonus_energy
+	bonus_max_storage = bonus_storage
+	_recalculate_max_values()
+
+# KORRIGIERT: Deine ursprüngliche Funktion, die vom ScreenManager aufgerufen wird.
 func start_new_day():
-	self.current_energy = MAX_ENERGY
+	current_energy = MAX_ENERGY
