@@ -37,7 +37,7 @@ func show_screen():
 
 func _on_confirm_button_pressed() -> void:
 	RobotState.update_equipment_bonuses(current_energy_bonus, current_storage_bonus)
-	get_parent().get_parent().show_screen("main_menu")
+	get_parent().get_parent().show_screen("game")
 
 # --- SAFETY NET DROP LOGIC (for the background) ---
 

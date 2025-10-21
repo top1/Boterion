@@ -27,6 +27,7 @@ const RoomBlockScene = preload("res://RoomBlock.tscn")
 @onready var debug_inspector_panel = %DebugInspectorPanel
 @onready var debug_visible_label = %DebugVisibleLabel
 @onready var debug_hidden_label = %DebugHiddenLabel
+@onready var to_workshop_button = %toWorkshop
 
 var planned_remaining_energy: int = 0
 var mission_plan: Array[Dictionary] = []
@@ -64,13 +65,6 @@ func draw_map():
 	var top_rooms: Array[RoomData] = RobotState.map_data.top
 	var bottom_rooms: Array[RoomData] = RobotState.map_data.bottom
 	# 3. Obere Raumreihe füllen.
-	#for room_data in top_rooms:
-		#var new_block = RoomBlockScene.instantiate()
-		## Die Daten an den Block übergeben.
-		#new_block.room_data = room_data
-		## Verbinde das Signal des Blocks mit unserer Handler-Funktion.
-		#new_block.room_selected.connect(_on_room_selected)
-		#top_row_container.add_child(new_block)
 	for room_data in top_rooms:
 		# 1. Erstelle einen unsichtbaren Platzhalter, der die volle Raumbreite einnimmt.
 		# Der CenterContainer ist perfekt dafür, da er sein Kind zentriert.
@@ -100,6 +94,8 @@ func draw_map():
 		bottom_row_container.add_child(placeholder)
 
 # Ersetze die komplette Funktion mit dieser Version
+# MapView.gd
+
 func _on_room_selected(room_data: RoomData, room_node: Button = null):
 	# --- 1. SETUP ---
 	current_selected_room = room_data
@@ -134,7 +130,6 @@ func _on_room_selected(room_data: RoomData, room_node: Button = null):
 		
 		# --- B.3: UI ANZEIGEN UND KONFIGURIEREN (DIE KOMPLETTE LOGIK) ---
 		if room_data.is_completely_empty():
-			# GEÄNDERT: Baue den Text für leere Räume komplett neu und kurz auf
 			info_text = "ROOM %s - ACTION PLANNING\n" % room_data.room_id
 			info_text += "--------------------\n"
 			info_text += "ROOM IS COMPLETELY EMPTY."
@@ -145,26 +140,29 @@ func _on_room_selected(room_data: RoomData, room_node: Button = null):
 			loot_button.disabled = true
 			scavenge_button.disabled = true
 		else:
-			# Dieser Teil wird nur ausgeführt, wenn der Raum NICHT leer ist
 			var max_e_theo = max_investable_energy / RobotState.ENERGY_PER_ELECTRONIC
 			var max_s_theo = max_investable_energy / RobotState.ENERGY_PER_SCRAP
 			var max_b_theo = max_investable_energy / RobotState.ENERGY_PER_BLUEPRINT
 			var max_f_theo = max_investable_energy / RobotState.ENERGY_PER_FOOD
 
+			# GEÄNDERT: Hier ist die Korrektur für die Beschriftung!
 			if room_data.is_scanned:
-				max_e_theo = min(max_e_theo, room_data.loot_pool.electronics.current)
-				max_s_theo = min(max_s_theo, room_data.loot_pool.scrap_metal.current)
-				max_b_theo = min(max_b_theo, room_data.loot_pool.blueprints.current)
-				max_f_theo = min(max_f_theo, room_data.loot_pool.food.current)
-				info_text += "Potential Scavenge: %d E, %d S\n" % [max_e_theo, max_s_theo]
-				info_text += "Potential Loot: %d B, %d F" % [max_b_theo, max_f_theo]
+				max_e_theo = min(max_e_theo, room_data.loot_pool["electronics"]["current"])
+				max_s_theo = min(max_s_theo, room_data.loot_pool["scrap_metal"]["current"])
+				max_b_theo = min(max_b_theo, room_data.loot_pool["blueprints"]["current"])
+				max_f_theo = min(max_f_theo, room_data.loot_pool["food"]["current"])
+				
+				info_text += "Remaining Contents (Max extractable):\n" # KLARE BESCHRIFTUNG
+				info_text += "  Scavenge: %d E, %d S\n" % [max_e_theo, max_s_theo]
+				info_text += "  Loot: %d B, %d F" % [max_b_theo, max_f_theo]
 			else:
-				info_text += "Potential (Theoretical):\n"
-				info_text += "Scavenge: %d E, %d S\n" % [max_e_theo, max_s_theo]
-				info_text += "Loot: %d B, %d F" % [max_b_theo, max_f_theo]
+				info_text += "Potential (Theoretical):\n" # Unveränderte Beschriftung
+				info_text += "  Scavenge: %d E, %d S\n" % [max_e_theo, max_s_theo]
+				info_text += "  Loot: %d B, %d F" % [max_b_theo, max_f_theo]
 
 			# UI Konfiguration
 			loot_slider.max_value = max_investable_energy
+			# ... (der Rest der Funktion bleibt unverändert) ...
 			loot_slider.min_value = 0
 			loot_slider.value = 0
 			_on_loot_slider_changed(0)
@@ -208,11 +206,10 @@ func _on_room_selected(room_data: RoomData, room_node: Button = null):
 		info_text += "Travel Cost to here: %d Energy\n" % travel_cost
 		info_text += "Status: %s\n" % ("SCANNED" if room_data.is_scanned else "UNSCANNED")
 		
-		# NEU: Wenn der Raum gescannt ist, zeige den Inhalt an
 		if room_data.is_scanned:
 			info_text += "Contents:\n"
-			info_text += "  Scavenge: %d E, %d S\n" % [room_data.loot_pool.electronics.current, room_data.loot_pool.scrap_metal.current]
-			info_text += "  Loot: %d B, %d F\n" % [room_data.loot_pool.blueprints.current, room_data.loot_pool.food.current]
+			info_text += "  Scavenge: %d E, %d S\n" % [room_data.loot_pool["electronics"]["current"], room_data.loot_pool["scrap_metal"]["current"]]
+			info_text += "  Loot: %d B, %d F\n" % [room_data.loot_pool["blueprints"]["current"], room_data.loot_pool["food"]["current"]]
 
 		var can_scan = false
 		if not room_data.is_scanned and not is_action_planned_for_room(room_data.room_id, "SCAN"):
@@ -338,6 +335,7 @@ func update_mission_plan_display():
 	# --- 4. FINALES UI-UPDATE ---
 	mission_list_label.text = display_text
 	remove_last_mission_button.disabled = mission_plan.is_empty()
+	to_workshop_button.disabled = not mission_plan.is_empty()
 	
 func _update_energy_bar_display():
 	# Hole dir die Kosten für den finalen Rückweg
@@ -493,8 +491,7 @@ func get_final_return_cost() -> int:
 	return last_mission.target_room.distance * RobotState.MOVE_COST_PER_UNIT
 
 
-func _on_confirm_pressed() -> void:
-	get_parent().show_screen("main_menu")
+
 
 func show_screen():
 	# 1. Mache den Screen sichtbar.
@@ -699,3 +696,10 @@ func update_debug_inspector():
 	hidden_text += "  F: %s\n" % str(room.loot_pool.food)
 	
 	debug_hidden_label.text = hidden_text
+
+
+func _on_to_workshop_pressed() -> void:
+	if is_plan_empty():
+		var screen_manager = get_tree().get_first_node_in_group("ScreenManager")
+		if screen_manager:
+			screen_manager.show_screen("equipment")

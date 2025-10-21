@@ -22,4 +22,4 @@ func show_rewards(collected_loot: Dictionary):
 func _on_continue_pressed():
 	# Finde den ScreenManager und sage ihm, zum Hauptmenü zurückzukehren
 	RobotState.start_new_day()
-	get_tree().get_first_node_in_group("ScreenManager").show_screen("main_menu")
+	get_tree().get_first_node_in_group("ScreenManager").show_screen("game")

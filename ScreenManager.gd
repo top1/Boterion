@@ -24,7 +24,7 @@ func _ready():
 		screens[screen_name].hide()
 	
 	# Show the initial screen
-	show_screen("main_menu") # Or "main_menu" if you build one
+	show_screen("game") # Or "main_menu" if you build one
 
 func show_screen(screen_name: String):
 	# --- NEUE SICHERHEITSABFRAGE ---

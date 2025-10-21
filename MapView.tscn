@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3 uid="uid://bykhhuqt4oyd2"]
+[gd_scene load_steps=3 format=3 uid="uid://bykhhuqt4oyd2"]
 
 [ext_resource type="Script" uid="uid://b4qqqxc7dnm38" path="res://MapView.gd" id="1_u636o"]
+[ext_resource type="Texture2D" uid="uid://p7fqhhytpsss" path="res://graphics/rooms/control_room_s.png" id="2_my5tf"]
 
 [node name="MapView" type="Control"]
 layout_mode = 3
@@ -52,14 +53,24 @@ theme_override_constants/margin_bottom = 5
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="Panel" type="Panel" parent="MarginContainer/VBoxContainer/ScrollContainer/MarginContainer/ScrollContent"]
-custom_minimum_size = Vector2(150, 0)
+[node name="ControllRoom" type="TextureRect" parent="MarginContainer/VBoxContainer/ScrollContainer/MarginContainer/ScrollContent"]
+visibility_layer = 2
 layout_mode = 2
+texture = ExtResource("2_my5tf")
+stretch_mode = 3
 
-[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/MarginContainer/ScrollContent/Panel"]
-layout_mode = 0
-offset_right = 40.0
-offset_bottom = 23.0
+[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/ScrollContainer/MarginContainer/ScrollContent/ControllRoom"]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -69.5
+offset_top = -23.0
+offset_right = 69.5
+grow_horizontal = 2
+grow_vertical = 0
 text = "CONTROLL ROOM"
 
 [node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/ScrollContainer/MarginContainer/ScrollContent"]
@@ -107,10 +118,11 @@ layout_mode = 2
 size_flags_horizontal = 4
 size_flags_vertical = 4
 
-[node name="Confirm" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer2/HBoxContainer"]
+[node name="toWorkshop" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer2/HBoxContainer"]
+unique_name_in_owner = true
 custom_minimum_size = Vector2(100, 25)
 layout_mode = 2
-text = "CONFIRM / BACK"
+text = "WORKSHOP (equip Robot)"
 
 [node name="RemoveLastMissionButton" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer2/HBoxContainer"]
 unique_name_in_owner = true
@@ -226,5 +238,5 @@ layout_mode = 2
 unique_name_in_owner = true
 layout_mode = 2
 
-[connection signal="pressed" from="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer2/HBoxContainer/Confirm" to="." method="_on_confirm_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer2/HBoxContainer/toWorkshop" to="." method="_on_to_workshop_pressed"]
 [connection signal="pressed" from="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer2/HBoxContainer/ExecutePlanButton" to="." method="_on_execute_plan_button_pressed"]

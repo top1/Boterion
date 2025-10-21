@@ -1,7 +1,6 @@
 # RoomBlock.gd
 extends Button
 
-@onready var label = $Label
 @onready var room_texture_rect = $RoomTexture
 
 # Die Texturen für die verschiedenen Raumtypen
@@ -32,15 +31,12 @@ func _ready():
 		_update_display()
 
 func _on_pressed():
-	print("Button wurde geklickt! Enthält room_data:", room_data)
 	if room_data:
 		# Hier verwenden wir 'self', um die Referenz auf diesen spezifischen Button zu senden.
 		emit_signal("room_selected", room_data, self)
 
 # Diese Funktion kümmert sich um die gesamte visuelle Darstellung.
 func _update_display():
-	# 1. Aktualisiere den Text (wie bisher)
-	label.text = room_data.room_id
 	
 	# 2. Aktualisiere die Textur
 	if room_data.is_scanned:
