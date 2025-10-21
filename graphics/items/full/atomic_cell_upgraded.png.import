@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://0rhgwg1i7o44"
-path="res://.godot/imported/old_scrap_container_upgraded.png-a0c3b94262b22022e25a6b4a52af2679.ctex"
+uid="uid://dhwqemjyim7q0"
+path="res://.godot/imported/atomic_cell_upgraded.png-17d0ffede1a61da9b5c611ab773f1d00.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://graphics/items/old_scrap_container_upgraded.png"
-dest_files=["res://.godot/imported/old_scrap_container_upgraded.png-a0c3b94262b22022e25a6b4a52af2679.ctex"]
+source_file="res://graphics/items/full/atomic_cell_upgraded.png"
+dest_files=["res://.godot/imported/atomic_cell_upgraded.png-17d0ffede1a61da9b5c611ab773f1d00.ctex"]
 
 [params]
 

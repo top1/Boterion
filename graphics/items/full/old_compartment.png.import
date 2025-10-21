@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://0rhgwg1i7o44"
-path="res://.godot/imported/old_scrap_container_upgraded.png-a0c3b94262b22022e25a6b4a52af2679.ctex"
+uid="uid://cco7dxtvsrsb7"
+path="res://.godot/imported/old_compartment.png-02733df151d31837ea65604f8130061b.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://graphics/items/old_scrap_container_upgraded.png"
-dest_files=["res://.godot/imported/old_scrap_container_upgraded.png-a0c3b94262b22022e25a6b4a52af2679.ctex"]
+source_file="res://graphics/items/full/old_compartment.png"
+dest_files=["res://.godot/imported/old_compartment.png-02733df151d31837ea65604f8130061b.ctex"]
 
 [params]
 

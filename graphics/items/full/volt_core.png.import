@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://0rhgwg1i7o44"
-path="res://.godot/imported/old_scrap_container_upgraded.png-a0c3b94262b22022e25a6b4a52af2679.ctex"
+uid="uid://cpk38qsripkvo"
+path="res://.godot/imported/volt_core.png-191fe56bb91619446f2abcad62e7babb.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://graphics/items/old_scrap_container_upgraded.png"
-dest_files=["res://.godot/imported/old_scrap_container_upgraded.png-a0c3b94262b22022e25a6b4a52af2679.ctex"]
+source_file="res://graphics/items/volt_core.png"
+dest_files=["res://.godot/imported/volt_core.png-191fe56bb91619446f2abcad62e7babb.ctex"]
 
 [params]
 

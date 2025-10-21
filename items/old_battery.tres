@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="Item" load_steps=3 format=3 uid="uid://cmfh51rra01bc"]
 
-[ext_resource type="Texture2D" uid="uid://cpk38qsripkvo" path="res://graphics/items/volt_core.png" id="1_335ti"]
+[ext_resource type="Texture2D" uid="uid://btkyedcqnsfnw" path="res://graphics/items/old_battery_s.png" id="1_335ti"]
 [ext_resource type="Script" uid="uid://cp7tjeyyfiodf" path="res://Item.gd" id="1_q7qpd"]
 
 [resource]

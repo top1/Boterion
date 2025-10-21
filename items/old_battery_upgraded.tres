@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="Item" load_steps=3 format=3 uid="uid://cer2ptit3oroo"]
+
+[ext_resource type="Texture2D" uid="uid://b02d7p0kqb223" path="res://graphics/items/old_battery_upgraded_s.png" id="1_qfxe6"]
+[ext_resource type="Script" uid="uid://cp7tjeyyfiodf" path="res://Item.gd" id="2_nkpia"]
+
+[resource]
+script = ExtResource("2_nkpia")
+item_name = "Old Battery"
+item_texture = ExtResource("1_qfxe6")
+item_type = "BATTERY"
+stats_modifier = {
+"energy": 25
+}
+metadata/_custom_type_script = "uid://cp7tjeyyfiodf"

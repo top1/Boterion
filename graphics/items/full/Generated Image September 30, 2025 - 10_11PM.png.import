@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://0rhgwg1i7o44"
-path="res://.godot/imported/old_scrap_container_upgraded.png-a0c3b94262b22022e25a6b4a52af2679.ctex"
+uid="uid://dlwoq1b81afy7"
+path="res://.godot/imported/Generated Image September 30, 2025 - 10_11PM.png-1fd05ba0b2e6c6a820c5e18397fd4bb1.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://graphics/items/old_scrap_container_upgraded.png"
-dest_files=["res://.godot/imported/old_scrap_container_upgraded.png-a0c3b94262b22022e25a6b4a52af2679.ctex"]
+source_file="res://graphics/items/full/Generated Image September 30, 2025 - 10_11PM.png"
+dest_files=["res://.godot/imported/Generated Image September 30, 2025 - 10_11PM.png-1fd05ba0b2e6c6a820c5e18397fd4bb1.ctex"]
 
 [params]
 

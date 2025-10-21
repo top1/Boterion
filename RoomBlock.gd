@@ -1,52 +1,51 @@
 # RoomBlock.gd
 extends Button
 
+@onready var label = $Label
+@onready var room_texture_rect = $RoomTexture
+
+# Die Texturen für die verschiedenen Raumtypen
+const ROOM_TEXTURES = {
+	RoomData.RoomType.STANDARD: preload("res://graphics/rooms/living_s.png"),
+	RoomData.RoomType.TEC: preload("res://graphics/rooms/tec_s.png"),
+	RoomData.RoomType.HABITAT: preload("res://graphics/rooms/habitat_s.png"),
+}
+# Die Textur für ungescannte Räume
+const UNDISCOVERED_TEXTURE = preload("res://graphics/rooms/undiscovered_s.png")
+
+
+# KORRIGIERT: 'self' wurde durch 'room_node' ersetzt.
 signal room_selected(room_data: RoomData, room_node: Button)
 
-# Wir entfernen den Aufruf von update_display() aus dem Setter!
+# Wir verwenden einen Setter, damit wir auf die Zuweisung der Daten reagieren können.
 var room_data: RoomData:
-	set(value):
-		room_data = value
-		# update_display() WIRD HIER ENTFERNT
+	set(new_data):
+		room_data = new_data
+		# Wenn die Daten gesetzt werden, aktualisiere alles.
+		if is_inside_tree() and room_data:
+			_update_display()
 
-@onready var label = %Label
-
-const BLOCK_WIDTH = 50
-const BLOCK_HEIGHT = 50
-
-# RoomBlock.gd
-
+# Diese Funktion wird aufgerufen, wenn der Node zum ersten Mal dem Baum hinzugefügt wird.
+# Wir stellen sicher, dass das Display auch aktualisiert wird, falls die Daten schon vorher gesetzt wurden.
 func _ready():
-	pressed.connect(_on_button_pressed)
-	update_display()
+	if room_data:
+		_update_display()
 
-# Die update_display() Funktion bleibt exakt gleich.
-func update_display():
-	# Wenn _ready() diese Funktion aufruft, kann room_data noch null sein,
-	# falls es nie gesetzt wurde. Also behalten wir diese Sicherheitsprüfung bei.
-	if not room_data:
-		return
+func _on_pressed():
+	print("Button wurde geklickt! Enthält room_data:", room_data)
+	if room_data:
+		# Hier verwenden wir 'self', um die Referenz auf diesen spezifischen Button zu senden.
+		emit_signal("room_selected", room_data, self)
 
-	# 1. Text des Labels setzen
-	label.text = "%s" % [room_data.room_id]
-
-	# 2. Größe des Blocks anpassen
-	#custom_minimum_size.x = room_data.size * BLOCK_WIDTH
-	custom_minimum_size.x = BLOCK_WIDTH
-
-	# 3. Farbe basierend auf dem Raumtyp ändern
-	var type_color = Color.WHITE
-	match room_data.type:
-		RoomData.RoomType.STANDARD:
-			type_color = Color.LIGHT_GRAY
-		RoomData.RoomType.TEC:
-			# Passende Farbe für TEC
-			type_color = Color.PALE_TURQUOISE
-		RoomData.RoomType.HABITAT:
-			# Passende Farbe für HABITAT
-			type_color = Color.PALE_GOLDENROD
+# Diese Funktion kümmert sich um die gesamte visuelle Darstellung.
+func _update_display():
+	# 1. Aktualisiere den Text (wie bisher)
+	label.text = room_data.room_id
 	
-	self_modulate = type_color
-
-func _on_button_pressed():
-	emit_signal("room_selected", room_data, self)
+	# 2. Aktualisiere die Textur
+	if room_data.is_scanned:
+		# Wenn der Raum gescannt ist, suche die richtige Textur aus dem Dictionary
+		room_texture_rect.texture = ROOM_TEXTURES.get(room_data.type, ROOM_TEXTURES[RoomData.RoomType.STANDARD])
+	else:
+		# Wenn nicht, benutze die "undiscovered" Textur
+		room_texture_rect.texture = UNDISCOVERED_TEXTURE

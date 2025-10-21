@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://0rhgwg1i7o44"
-path="res://.godot/imported/old_scrap_container_upgraded.png-a0c3b94262b22022e25a6b4a52af2679.ctex"
+uid="uid://bi7dah5y2jmc4"
+path="res://.godot/imported/lion_cell.png-bcbc3ffc94ae2e6b6103f242a1cd9510.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://graphics/items/old_scrap_container_upgraded.png"
-dest_files=["res://.godot/imported/old_scrap_container_upgraded.png-a0c3b94262b22022e25a6b4a52af2679.ctex"]
+source_file="res://graphics/items/full/lion_cell.png"
+dest_files=["res://.godot/imported/lion_cell.png-bcbc3ffc94ae2e6b6103f242a1cd9510.ctex"]
 
 [params]
 

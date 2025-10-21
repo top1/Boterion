@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3 uid="uid://dqyrxafvubfij"]
+[gd_scene load_steps=9 format=3 uid="uid://dqyrxafvubfij"]
 
 [ext_resource type="Script" uid="uid://ssuo7kp20lmo" path="res://RobotEquipScreen.gd" id="1_3j4y3"]
 [ext_resource type="Texture2D" uid="uid://butsf7yempkbj" path="res://graphics/background/background_simple_grid.png" id="1_55gbs"]
@@ -7,6 +7,7 @@
 [ext_resource type="Script" uid="uid://cuca13ghn8vn1" path="res://equip_slot.gd" id="3_mai7p"]
 [ext_resource type="Script" uid="uid://bpq13eirqivs4" path="res://Inventory_slot.gd" id="4_c1jpw"]
 [ext_resource type="Resource" uid="uid://cmfh51rra01bc" path="res://items/old_battery.tres" id="6_mai7p"]
+[ext_resource type="Resource" uid="uid://cer2ptit3oroo" path="res://items/old_battery_upgraded.tres" id="7_d6c40"]
 
 [node name="Control" type="Control"]
 layout_mode = 3
@@ -187,6 +188,7 @@ columns = 3
 custom_minimum_size = Vector2(128, 128)
 layout_mode = 2
 script = ExtResource("4_c1jpw")
+item = ExtResource("7_d6c40")
 
 [node name="ItemTexture" type="TextureRect" parent="MainLayout/InventoryPanel/ItemGrid/InventorySlot1"]
 layout_mode = 2
@@ -196,7 +198,7 @@ expand_mode = 2
 custom_minimum_size = Vector2(128, 128)
 layout_mode = 2
 script = ExtResource("4_c1jpw")
-item = ExtResource("6_mai7p")
+item = ExtResource("7_d6c40")
 
 [node name="ItemTexture" type="TextureRect" parent="MainLayout/InventoryPanel/ItemGrid/InventorySlot2"]
 layout_mode = 2
