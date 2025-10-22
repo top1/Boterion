@@ -115,6 +115,7 @@ offset_top = 180.0
 offset_right = 448.0
 offset_bottom = 244.0
 script = ExtResource("3_mai7p")
+current_equipped_item = ExtResource("7_d6c40")
 allowed_item_types = Array[String](["BATTERY", "STORAGE"])
 
 [node name="ItemTexture" type="TextureRect" parent="MainLayout/RobotPanel/BodySlot2"]
@@ -198,7 +199,7 @@ expand_mode = 2
 custom_minimum_size = Vector2(128, 128)
 layout_mode = 2
 script = ExtResource("4_c1jpw")
-item = ExtResource("7_d6c40")
+item = ExtResource("6_mai7p")
 
 [node name="ItemTexture" type="TextureRect" parent="MainLayout/InventoryPanel/ItemGrid/InventorySlot2"]
 layout_mode = 2
@@ -248,7 +249,7 @@ expand_mode = 2
 custom_minimum_size = Vector2(128, 128)
 layout_mode = 2
 script = ExtResource("4_c1jpw")
-item = ExtResource("6_mai7p")
+item = ExtResource("7_d6c40")
 
 [node name="ItemTexture" type="TextureRect" parent="MainLayout/InventoryPanel/ItemGrid/InventorySlot7"]
 layout_mode = 2
