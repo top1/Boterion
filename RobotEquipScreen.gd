@@ -1,86 +1,82 @@
-# RobotEquipScreen.gd 
+# RobotEquipScreen.gd
 extends Control
 class_name RobotEquipScreen
-signal screen_closed
-var current_energy_bonus: int = 0
-var current_storage_bonus: int = 0
+# --- UI-Referenzen ---
+# (Deine bisherigen Referenzen)
+@onready var confirm_button = %ConfirmButton
+@onready var battery_item_grid = %BatteryItemGrid # Annahme, du hast so etwas
 
-@onready var head_slot: EquipSlot = $MainLayout/RobotPanel/HeadSlot
-@onready var left_arm_slot: EquipSlot = $MainLayout/RobotPanel/LeftArm
-@onready var right_arm_slot: EquipSlot = $MainLayout/RobotPanel/RightArm
-@onready var body_slot_1: EquipSlot = $MainLayout/RobotPanel/BodySlot
-@onready var body_slot_2: EquipSlot = $MainLayout/RobotPanel/BodySlot2
-@onready var body_slot_3: EquipSlot = $MainLayout/RobotPanel/BodySlot3
-@onready var body_slot_4: EquipSlot = $MainLayout/RobotPanel/BodySlot4
+# NEU: Referenzen für die Auflade-Sektion
+@onready var base_energy_label = %BaseEnergyLabel
+@onready var robot_energy_label = %RobotEnergyLabel
+@onready var charge_slider = %ChargeSlider
+@onready var charge_info_label = %ChargeInfoLabel
 
-@onready var stats_label: Label = $MainLayout/RobotPanel/StatsPanel/StatsLabel
+# --- Logik ---
 
-func _ready():
-	# --- This code runs ONCE when the screen loads ---
-	# Assign allowed item types via code
-	head_slot.allowed_item_types = ["SCANNER"]
-	left_arm_slot.allowed_item_types = ["TOOLS"]
-	right_arm_slot.allowed_item_types = ["TOOLS"]
-	body_slot_1.allowed_item_types = ["BATTERY", "STORAGE"]
-	body_slot_2.allowed_item_types = ["BATTERY", "STORAGE"]
-	body_slot_3.allowed_item_types = ["BATTERY", "STORAGE"]
-	body_slot_4.allowed_item_types = ["BATTERY", "STORAGE"]
-	
-	# Calculate stats for the first time
-	update_robot_stats()
-
-# --- UI CONTROL FUNCTIONS ---
-
+# Diese Funktion wird vom ScreenManager aufgerufen, wenn der Screen angezeigt wird.
 func show_screen():
 	show()
-	update_robot_stats() # Update stats every time the screen is opened
-
-func _on_confirm_button_pressed() -> void:
-	RobotState.update_equipment_bonuses(current_energy_bonus, current_storage_bonus)
-	get_parent().get_parent().show_screen("game")
-
-# --- SAFETY NET DROP LOGIC (for the background) ---
-
-func _can_drop_data(at_position: Vector2, data: Variant) -> bool:
-	return data is Dictionary and data.has("type") and data["type"] == "inventory_item"
-
-func _drop_data(at_position: Vector2, data: Variant):
-	# A drop on the background is a "cancel". Return the item to its source.
-	var source_slot = data["source_slot"]
-	var item_resource: Item = data["item_resource"]
+	# Aktualisiere die gesamte Anzeige mit den frischesten Werten aus RobotState.
+	_update_display()
 	
-	if source_slot is EquipSlot:
-		source_slot.current_equipped_item = item_resource
+	# Sperre den Confirm-Button, wenn eine Mission geplant ist.
+	var map_view = get_tree().get_first_node_in_group("MapView") # Annahme für Gruppennamen
+	if map_view and not map_view.is_plan_empty():
+		confirm_button.disabled = true
+		confirm_button.text = "PLAN IN PROGRESS"
 	else:
-		source_slot.item = item_resource
-	
-	source_slot.update_display()
-	# We must also update stats here, in case an equipped item was returned
-	update_robot_stats()
+		confirm_button.disabled = false
+		confirm_button.text = "CONFIRM & RETURN"
 
-# --- STATS CALCULATION ---
+# NEU: Eine zentrale Funktion, die alle Anzeigen aktualisiert.
+func _update_display():
+	# 1. Update der Stat-Labels (die neue Übersicht)
+	base_energy_label.text = "Base Energy: %d / %d" % [RobotState.base_energy_current, RobotState.base_max_energy]
+	robot_energy_label.text = "Robot Energy: %d / %d" % [RobotState.current_energy, RobotState.MAX_ENERGY]
+	
+	# 2. Konfiguriere den Lade-Slider
+	charge_slider.min_value = RobotState.current_energy # Man kann nicht weniger Energie haben als jetzt
+	charge_slider.max_value = RobotState.MAX_ENERGY   # Man kann nicht mehr als das Maximum laden
+	charge_slider.value = RobotState.current_energy    # Der Slider startet bei der aktuellen Energie
+	
+	# 3. Update der Info-Anzeige für den Slider
+	_on_charge_slider_changed(charge_slider.value)
 
-func update_robot_stats():
-	var total_stats = {
-		"energy": 0,
-		"storage": 0
-	}
-	
-	var all_equip_slots = [head_slot, left_arm_slot, right_arm_slot, body_slot_1, body_slot_2, body_slot_3, body_slot_4]
-	
-	for slot in all_equip_slots:
-		if slot.current_equipped_item:
-			var modifiers = slot.current_equipped_item.stats_modifier
-			for stat_name in modifiers:
-				var modifier_value = modifiers[stat_name]
-				total_stats[stat_name] = total_stats.get(stat_name, 0) + modifier_value
-	
-	display_stats(total_stats)
 
-func display_stats(stats: Dictionary):
-	var stats_text = "ROBOT STATS:\n"
-	for stat_name in stats:
-		stats_text += "- %s: %s\n" % [stat_name.capitalize(), stats[stat_name]]
-	stats_label.text = stats_text
-	self.current_energy_bonus = stats.get("energy", 0)
-	self.current_storage_bonus = stats.get("storage", 0)
+# NEU: Diese Funktion wird aufgerufen, wenn der Slider bewegt wird.
+func _on_charge_slider_changed(new_value: float):
+	var target_energy = int(new_value)
+	var energy_needed = target_energy - RobotState.current_energy
+	
+	# Sicherheitsabfrage: Wenn wir mehr Energie brauchen, als die Basis hat,
+	# begrenzen wir das Ziel auf das, was wir uns leisten können.
+	if energy_needed > RobotState.base_energy_current:
+		target_energy = RobotState.current_energy + RobotState.base_energy_current
+		charge_slider.value = target_energy # Schiebe den Slider visuell zurück
+		energy_needed = target_energy - RobotState.current_energy
+
+	charge_info_label.text = "Charge Cost: %d Base Energy" % energy_needed
+
+
+# VERBINDEN: Stelle sicher, dass diese Funktion mit dem "pressed"-Signal des Sliders verbunden ist!
+func _on_confirm_button_pressed():
+	# 1. Berechne die Ausrüstungs-Boni (dein bisheriger Code hier)
+	var bonus_energy = 0 # ... berechne Boni aus Items
+	var bonus_storage = 0
+	RobotState.update_equipment_bonuses(bonus_energy, bonus_storage)
+
+	# 2. NEU: Führe die Aufladung durch
+	var energy_to_charge = int(charge_slider.value) - RobotState.current_energy
+	if energy_to_charge > 0:
+		# Rufe eine neue Funktion in RobotState auf, die die Transaktion sicher durchführt
+		RobotState.charge_robot_from_base(energy_to_charge)
+
+	# 3. Wechsle zurück zum MapView
+	var screen_manager = get_tree().get_first_node_in_group("ScreenManager")
+	if screen_manager:
+		screen_manager.show_screen("game")
+
+func _ready():
+	# VERBINDEN: Stelle sicher, dass das value_changed Signal des Sliders hiermit verbunden ist!
+	charge_slider.value_changed.connect(_on_charge_slider_changed)

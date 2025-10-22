@@ -63,3 +63,17 @@ func start_new_day():
 	print("--- NEW DAY STARTED ---")
 	print("Base Energy reset to: %d / %d" % [base_energy_current, base_max_energy])
 	print("Robot Energy is now: %d / %d" % [current_energy, MAX_ENERGY])
+
+func charge_robot_from_base(amount_to_charge: int):
+	# Sicherheitsabfrage: Stelle sicher, dass wir genug Basis-Energie haben.
+	if base_energy_current >= amount_to_charge:
+		# Führe die Transaktion durch
+		base_energy_current -= amount_to_charge
+		current_energy += amount_to_charge
+		
+		# Stelle sicher, dass die Roboter-Energie das Maximum nicht überschreitet.
+		current_energy = min(current_energy, MAX_ENERGY)
+		
+		print("Charged robot with %d energy. Cost: %d Base Energy." % [amount_to_charge, amount_to_charge])
+	else:
+		print("ERROR: Not enough base energy to perform charge!")
