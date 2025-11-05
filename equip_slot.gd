@@ -2,14 +2,23 @@
 extends PanelContainer
 class_name EquipSlot
 
+signal item_equipped(item)
+signal item_unequipped(item)
+
 # This will hold a reference to our main screen script. It starts as null.
 var main_screen = null
 
 @export var current_equipped_item: Item = null:
 	set(value):
+		var old_item = current_equipped_item
 		current_equipped_item = value
 		if is_node_ready():
 			update_display()
+			if current_equipped_item != old_item:
+				if current_equipped_item:
+					emit_signal("item_equipped", current_equipped_item)
+				else:
+					emit_signal("item_unequipped", old_item)
 
 @export var allowed_item_types: Array[String] = []
 

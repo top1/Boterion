@@ -45,16 +45,26 @@ func initialize_map_if_needed():
 		print("--- ROBOTSTATE: Using EXISTING persistent map data ---")
 
 func _recalculate_max_values():
-	# KORRIGIERT: Verwendet jetzt den neuen, eindeutigen Variablennamen
+	# Add bonus energy to the base max energy
 	MAX_ENERGY = robot_base_max_energy + bonus_max_energy
 	MAX_STORAGE = robot_base_max_storage + bonus_max_storage
-	current_energy = MAX_ENERGY
+	
+	# Don't reset current_energy to MAX_ENERGY here
+	# Only ensure it doesn't exceed the new maximum
+	current_energy = min(current_energy, MAX_ENERGY)
+	
 	emit_signal("energy_changed", MAX_ENERGY)
 
 func update_equipment_bonuses(bonus_energy: int, bonus_storage: int):
+	var old_max_energy = MAX_ENERGY
 	bonus_max_energy = bonus_energy
 	bonus_max_storage = bonus_storage
 	_recalculate_max_values()
+	
+	# If max energy increased, also increase current energy by the difference
+	if MAX_ENERGY > old_max_energy:
+		var energy_increase = MAX_ENERGY - old_max_energy
+		current_energy += energy_increase
 
 func start_new_day():
 	# Setzt die Basis-Energie auf das tägliche Maximum zurück.
