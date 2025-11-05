@@ -14,15 +14,16 @@ var base_max_energy: int = 100 # Das tägliche Energie-Budget der Basis
 var base_energy_current: int = 100
 
 # --- ROBOTER-WERTE (KORRIGIERT) ---
-var robot_base_max_energy: int = 60 # Eindeutiger Name!
+# Core robot stats
+var robot_base_max_energy: int = 60
 var robot_base_max_storage: int = 50
 var bonus_max_energy: int = 0
 var bonus_max_storage: int = 0
-var MAX_ENERGY: int = 60 # Berechneter Maximalwert für den Roboter
-var MAX_STORAGE: int = 50 # Berechneter Maximalwert für den Roboter
+var MAX_ENERGY: int = 60
+var MAX_STORAGE: int = 50
 
-# --- LIVE-WERTE DES ROBOTERS ---
-var current_energy: int = 60
+# Current values
+var current_energy: int = 0  # Start at 0, not MAX_ENERGY
 var current_storage: int = 0
 
 # --- KOSTEN-KONSTANTEN ---
@@ -45,34 +46,28 @@ func initialize_map_if_needed():
 		print("--- ROBOTSTATE: Using EXISTING persistent map data ---")
 
 func _recalculate_max_values():
-	# Add bonus energy to the base max energy
+	var old_max = MAX_ENERGY
 	MAX_ENERGY = robot_base_max_energy + bonus_max_energy
 	MAX_STORAGE = robot_base_max_storage + bonus_max_storage
 	
-	# Don't reset current_energy to MAX_ENERGY here
-	# Only ensure it doesn't exceed the new maximum
+	# Only clamp, never auto-fill
 	current_energy = min(current_energy, MAX_ENERGY)
+	current_storage = min(current_storage, MAX_STORAGE)
 	
 	emit_signal("energy_changed", MAX_ENERGY)
 
 func update_equipment_bonuses(bonus_energy: int, bonus_storage: int):
-	var old_max_energy = MAX_ENERGY
 	bonus_max_energy = bonus_energy
 	bonus_max_storage = bonus_storage
 	_recalculate_max_values()
-	
-	# If max energy increased, also increase current energy by the difference
-	if MAX_ENERGY > old_max_energy:
-		var energy_increase = MAX_ENERGY - old_max_energy
-		current_energy += energy_increase
 
 func start_new_day():
-	# Setzt die Basis-Energie auf das tägliche Maximum zurück.
+	# Only reset base energy, NOT robot energy
 	base_energy_current = base_max_energy
 	
 	print("--- NEW DAY STARTED ---")
 	print("Base Energy reset to: %d / %d" % [base_energy_current, base_max_energy])
-	print("Robot Energy is now: %d / %d" % [current_energy, MAX_ENERGY])
+	print("Robot Energy remains: %d / %d" % [current_energy, MAX_ENERGY])
 
 func charge_robot_from_base(amount_to_charge: int):
 	# Sicherheitsabfrage: Stelle sicher, dass wir genug Basis-Energie haben.
