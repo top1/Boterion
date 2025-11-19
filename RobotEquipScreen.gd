@@ -103,8 +103,20 @@ func _ready():
 	update_robot_stats()
 
 func _on_equipment_changed(_item = null):
+	# Capture old max energy before recalculating
+	var old_max_energy = RobotState.MAX_ENERGY
+	
 	var bonuses = _calculate_equipment_bonuses()
 	RobotState.update_equipment_bonuses(bonuses.energy, bonuses.storage)
+	
+	# Calculate the difference (new capacity added)
+	var diff = RobotState.MAX_ENERGY - old_max_energy
+	
+	# If we gained capacity (e.g. equipped a battery), add that charge instantly!
+	if diff > 0:
+		RobotState.current_energy += diff
+		# Clamp just in case, though logic implies it's safe
+		RobotState.current_energy = min(RobotState.current_energy, RobotState.MAX_ENERGY)
 	
 	# When equipment changes, update slider range but keep current value
 	charge_slider.max_value = RobotState.MAX_ENERGY

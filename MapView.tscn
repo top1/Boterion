@@ -1,7 +1,17 @@
-[gd_scene load_steps=3 format=3 uid="uid://bykhhuqt4oyd2"]
+[gd_scene load_steps=7 format=3 uid="uid://bykhhuqt4oyd2"]
 
 [ext_resource type="Script" uid="uid://b4qqqxc7dnm38" path="res://MapView.gd" id="1_u636o"]
 [ext_resource type="Texture2D" uid="uid://p7fqhhytpsss" path="res://graphics/rooms/control_room_s.png" id="2_my5tf"]
+[ext_resource type="Texture2D" uid="uid://1h2mvfrvjtfl" path="res://graphics/ui/terminal_bg.png" id="3_mcy4a"]
+[ext_resource type="Texture2D" uid="uid://b6x212l7pibwv" path="res://graphics/ui/panel_border.png" id="4_55l1y"]
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_1f5pp"]
+texture = ExtResource("3_mcy4a")
+axis_stretch_horizontal = 2
+modulate_color = Color(0, 1, 1, 1)
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_k3ugk"]
+texture = ExtResource("4_55l1y")
 
 [node name="MapView" type="Control"]
 layout_mode = 3
@@ -104,13 +114,19 @@ custom_minimum_size = Vector2(800, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
+theme_override_styles/panel = SubResource("StyleBoxTexture_1f5pp")
 
-[node name="MissionListLabel" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer2/Panel"]
+[node name="MissionListLabel" type="RichTextLabel" parent="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer2/Panel"]
 unique_name_in_owner = true
-layout_mode = 0
-offset_right = 40.0
-offset_bottom = 23.0
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+bbcode_enabled = true
 text = "MISSION PLANNER AREA"
+fit_content = true
 
 [node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer2"]
 layout_direction = 3
@@ -158,13 +174,19 @@ layout_mode = 2
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
+theme_override_styles/panel = SubResource("StyleBoxTexture_k3ugk")
 
-[node name="RoomInfoLabel" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer/Panel2"]
+[node name="RoomInfoLabel" type="RichTextLabel" parent="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer/Panel2"]
 unique_name_in_owner = true
-layout_mode = 0
-offset_right = 40.0
-offset_bottom = 23.0
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+bbcode_enabled = true
 text = "Room Info"
+fit_content = true
 
 [node name="LootActionContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer"]
 unique_name_in_owner = true
@@ -175,10 +197,13 @@ layout_mode = 2
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="LootEnergyLabel" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer/LootActionContainer"]
+[node name="LootEnergyLabel" type="RichTextLabel" parent="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer/LootActionContainer"]
 unique_name_in_owner = true
 layout_mode = 2
+size_flags_horizontal = 3
+bbcode_enabled = true
 text = "Energy to commit: 0"
+fit_content = true
 
 [node name="VBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer"]
 layout_mode = 2

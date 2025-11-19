@@ -52,7 +52,22 @@ func _ready():
 	
 	# Rufe show_screen() auf, um den initialen Zustand des Spiels zu zeichnen.
 	# Diese Funktion wird von nun an vom ScreenManager für jeden neuen Tag aufgerufen.
+	
+	# --- VISUAL OVERHAUL SETUP ---
+	_apply_retro_theme()
+	
 	show_screen()
+
+func _apply_retro_theme():
+	# Enable BBCode for all text labels
+	room_info_label.bbcode_enabled = true
+	mission_list_label.bbcode_enabled = true
+	loot_energy_label.bbcode_enabled = true
+	
+	# Load textures (assuming they are in the root or graphics folder)
+	# Note: In a real scenario, we'd move these to res://graphics/ui/
+	# For now, we check if they exist in the root or use placeholders
+	pass # We will rely on the text formatting for now, textures need to be assigned in editor or via code if paths are known.
 # Diese Funktion löscht die alte Karte und zeichnet eine neue.
 func draw_map():
 	# 1. Alte Raum-Blöcke entfernen, falls vorhanden.
@@ -121,12 +136,12 @@ func _on_room_selected(room_data: RoomData, room_node: Button = null):
 		var max_energy_on_site = get_max_available_energy_for_action(room_data.distance)
 		var max_investable_energy = min(max_energy_on_site, RobotState.MAX_STORAGE - RobotState.current_storage)
 
-		# --- B.2: INFO-TEXT AUFBAUEN ---
-		var info_text = "ROOM %s - ACTION PLANNING\n" % room_data.room_id
-		info_text += "--------------------\n"
-		info_text += "Energy on site: %d | Storage: %d\n" % [max_energy_on_site, (RobotState.MAX_STORAGE - RobotState.current_storage)]
-		info_text += "Max investable Energy: %d\n" % max_investable_energy
-		info_text += "--------------------\n"
+		# --- B.2: INFO-TEXT AUFBAUEN (RETRO STYLE) ---
+		var info_text = "[color=#88ccff][b]ROOM %s - ACTION PLANNING[/b][/color]\n" % room_data.room_id
+		info_text += "[color=#555555]--------------------[/color]\n"
+		info_text += "Energy on site: [color=#ffff00]%d[/color] | Storage: [color=#ffff00]%d[/color]\n" % [max_energy_on_site, (RobotState.MAX_STORAGE - RobotState.current_storage)]
+		info_text += "Max investable Energy: [color=#00ff00]%d[/color]\n" % max_investable_energy
+		info_text += "[color=#555555]--------------------[/color]\n"
 		
 		# --- B.3: UI ANZEIGEN UND KONFIGURIEREN (DIE KOMPLETTE LOGIK) ---
 		if room_data.is_completely_empty():
@@ -152,13 +167,13 @@ func _on_room_selected(room_data: RoomData, room_node: Button = null):
 				max_b_theo = min(max_b_theo, room_data.loot_pool["blueprints"]["current"])
 				max_f_theo = min(max_f_theo, room_data.loot_pool["food"]["current"])
 				
-				info_text += "Remaining Contents (Max extractable):\n" # KLARE BESCHRIFTUNG
-				info_text += "  Scavenge: %d E, %d S\n" % [max_e_theo, max_s_theo]
-				info_text += "  Loot: %d B, %d F" % [max_b_theo, max_f_theo]
+				info_text += "Remaining Contents (Max extractable):\n"
+				info_text += "  Scavenge: [color=#00ffff]%d E[/color], [color=#aaaaaa]%d S[/color]\n" % [max_e_theo, max_s_theo]
+				info_text += "  Loot: [color=#ff00ff]%d B[/color], [color=#ffaa00]%d F[/color]" % [max_b_theo, max_f_theo]
 			else:
-				info_text += "Potential (Theoretical):\n" # Unveränderte Beschriftung
-				info_text += "  Scavenge: %d E, %d S\n" % [max_e_theo, max_s_theo]
-				info_text += "  Loot: %d B, %d F" % [max_b_theo, max_f_theo]
+				info_text += "Potential (Theoretical):\n"
+				info_text += "  Scavenge: [color=#00ffff]%d E[/color], [color=#aaaaaa]%d S[/color]\n" % [max_e_theo, max_s_theo]
+				info_text += "  Loot: [color=#ff00ff]%d B[/color], [color=#ffaa00]%d F[/color]" % [max_b_theo, max_f_theo]
 
 			# UI Konfiguration
 			loot_slider.max_value = max_investable_energy
@@ -201,15 +216,15 @@ func _on_room_selected(room_data: RoomData, room_node: Button = null):
 		var travel_dist = abs(room_data.distance - last_position_in_plan)
 		var travel_cost = travel_dist * RobotState.MOVE_COST_PER_UNIT
 		
-		var info_text = "ROOM %s PREVIEW:\n" % room_data.room_id
-		info_text += "--------------------\n"
-		info_text += "Travel Cost to here: %d Energy\n" % travel_cost
-		info_text += "Status: %s\n" % ("SCANNED" if room_data.is_scanned else "UNSCANNED")
+		var info_text = "[color=#88ccff][b]ROOM %s PREVIEW:[/b][/color]\n" % room_data.room_id
+		info_text += "[color=#555555]--------------------[/color]\n"
+		info_text += "Travel Cost to here: [color=#ff5555]%d Energy[/color]\n" % travel_cost
+		info_text += "Status: %s\n" % ("[color=#00ff00]SCANNED[/color]" if room_data.is_scanned else "[color=#ff0000]UNSCANNED[/color]")
 		
 		if room_data.is_scanned:
 			info_text += "Contents:\n"
-			info_text += "  Scavenge: %d E, %d S\n" % [room_data.loot_pool["electronics"]["current"], room_data.loot_pool["scrap_metal"]["current"]]
-			info_text += "  Loot: %d B, %d F\n" % [room_data.loot_pool["blueprints"]["current"], room_data.loot_pool["food"]["current"]]
+			info_text += "  Scavenge: [color=#00ffff]%d E[/color], [color=#aaaaaa]%d S[/color]\n" % [room_data.loot_pool["electronics"]["current"], room_data.loot_pool["scrap_metal"]["current"]]
+			info_text += "  Loot: [color=#ff00ff]%d B[/color], [color=#ffaa00]%d F[/color]\n" % [room_data.loot_pool["blueprints"]["current"], room_data.loot_pool["food"]["current"]]
 
 		var can_scan = false
 		if not room_data.is_scanned and not is_action_planned_for_room(room_data.room_id, "SCAN"):
@@ -295,18 +310,18 @@ func add_mission_to_plan(mission: Dictionary):
 	
 func update_mission_plan_display():
 	# --- 1. SETUP ---
-	var display_text = "Mission Plan:\n"
-	display_text += "--------------------\n"
+	var display_text = "[color=#ffffff][b]Mission Plan:[/b][/color]\n"
+	display_text += "[color=#555555]--------------------[/color]\n"
 	
 	# --- 2. MISSIONEN AUFLISTEN MIT ALLEN DETAILS ---
 	for mission in mission_plan:
 		# Zeile 1: Hauptaktion und Gesamtkosten für diesen Schritt
-		display_text += "> %s Room %s (Total: %d)\n" % [mission.type, mission.room_id, mission.cost]
+		display_text += "> [color=#ffff00]%s[/color] Room %s (Total: [color=#ff5555]%d[/color])\n" % [mission.type, mission.room_id, mission.cost]
 		
 		# --- NEU & WIEDERHERGESTELLT: Die Kostenaufschlüsselung ---
 		# Zeige die Details nur an, wenn es auch Kosten gab.
 		if mission.cost > 0:
-			display_text += "    Travel: %d, Action: %d\n" % [mission.get("travel_cost", 0), mission.get("action_cost", 0)]
+			display_text += "    [color=#aaaaaa]Travel: %d, Action: %d[/color]\n" % [mission.get("travel_cost", 0), mission.get("action_cost", 0)]
 		# --------------------------------------------------------
 
 		# Zeile 3 (optional): Potenzielle Beute
@@ -317,20 +332,20 @@ func update_mission_plan_display():
 				if loot_info[key] > 0:
 					loot_string_parts.append("%d %s" % [loot_info[key], key])
 			if not loot_string_parts.is_empty():
-				display_text += "    ~Outcome: " + ", ".join(loot_string_parts) + "\n"
+				display_text += "    [color=#00ff00]~Outcome: " + ", ".join(loot_string_parts) + "[/color]\n"
 
 	# --- 3. RÜCKWEG UND ZUSAMMENFASSUNG ---
 	var final_return_cost = get_final_return_cost()
 	
 	if final_return_cost > 0:
-		display_text += "--------------------\n"
-		display_text += "> Return to Base (Cost: %d)\n" % final_return_cost
+		display_text += "[color=#555555]--------------------[/color]\n"
+		display_text += "> Return to Base (Cost: [color=#ff5555]%d[/color])\n" % final_return_cost
 	
 	var total_actions_cost = RobotState.MAX_ENERGY - planned_remaining_energy
 	var total_cost_with_return = total_actions_cost + final_return_cost
 	
-	display_text += "--------------------\n"
-	display_text += "Total Planned Cost: %d" % total_cost_with_return
+	display_text += "[color=#555555]--------------------[/color]\n"
+	display_text += "Total Planned Cost: [color=#ff5555]%d[/color]" % total_cost_with_return
 
 	# --- 4. FINALES UI-UPDATE ---
 	mission_list_label.text = display_text
@@ -440,8 +455,8 @@ func _on_scavenge_pressed():
 
 func _on_loot_slider_changed(value: float):
 	var energy_commitment = int(value)
-	var preview_text = "Energy to commit: %d\n" % energy_commitment
-	preview_text += "--------------------\n"
+	var preview_text = "Energy to commit: [color=#ffff00]%d[/color]\n" % energy_commitment
+	preview_text += "[color=#555555]--------------------[/color]\n"
 	preview_text += "Potential Outcome:\n"
 
 	# --- SCAVENGE BERECHNUNG ---
@@ -454,7 +469,7 @@ func _on_loot_slider_changed(value: float):
 		theoretical_electronics = min(theoretical_electronics, current_selected_room.loot_pool.electronics.current)
 		theoretical_scrap = min(theoretical_scrap, current_selected_room.loot_pool.scrap_metal.current)
 	
-	preview_text += "Scavenge: ~%d Electronics, ~%d Scrap\n" % [theoretical_electronics, theoretical_scrap]
+	preview_text += "Scavenge: [color=#00ffff]~%d Electronics[/color], [color=#aaaaaa]~%d Scrap[/color]\n" % [theoretical_electronics, theoretical_scrap]
 
 	# --- LOOT BERECHNUNG ---
 	# 1. Berechne den theoretischen Ertrag rein aus der Energie
@@ -466,7 +481,7 @@ func _on_loot_slider_changed(value: float):
 		theoretical_blueprints = min(theoretical_blueprints, current_selected_room.loot_pool.blueprints.current)
 		theoretical_food = min(theoretical_food, current_selected_room.loot_pool.food.current)
 		
-	preview_text += "Loot: ~%d Blueprints, ~%d Food" % [theoretical_blueprints, theoretical_food]
+	preview_text += "Loot: [color=#ff00ff]~%d Blueprints[/color], [color=#ffaa00]~%d Food[/color]" % [theoretical_blueprints, theoretical_food]
 
 	# Setze den Text im Label
 	loot_energy_label.text = preview_text
