@@ -26,20 +26,19 @@ func _ready():
 	show_screen("game") # Or "main_menu" if you build one
 
 func show_screen(screen_name: String):
-	# --- NEUE SICHERHEITSABFRAGE ---
-	if screen_name == "equipment":
-		# Hole dir eine Referenz zum GameScreen
-		var game_screen = screens.get("game")
-		
-		# Prüfe, ob der GameScreen existiert UND ob sein Plan NICHT leer ist
-		if game_screen and not game_screen.is_plan_empty():
-			# Setze die Nachricht und zeige den Dialog an
-			warning_dialog.dialog_text = "Cannot change equipment while a mission is planned. Please clear the plan first."
-			warning_dialog.popup_centered()
-			
-			# Beende die Funktion hier, um den Bildschirmwechsel zu verhindern
-			return
-	# --- ENDE SICHERHEITSABFRAGE ---
+	# --- GENERIC SAFETY CHECK ---
+	# Check if the CURRENT screen allows us to leave.
+	for screen_key in screens:
+		var screen_node = screens[screen_key]
+		if screen_node.visible:
+			if screen_node.has_method("can_leave_screen"):
+				if not screen_node.can_leave_screen():
+					# The screen should handle showing its own warning/reason
+					if screen_node.has_method("get_leave_warning"):
+						warning_dialog.dialog_text = screen_node.get_leave_warning()
+						warning_dialog.popup_centered()
+					return
+	# --- END SAFETY CHECK ---
 
 	if not screens.has(screen_name):
 		print("Error: Screen '%s' not found." % screen_name)

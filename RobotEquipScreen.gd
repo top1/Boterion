@@ -42,9 +42,14 @@ func show_screen():
 	_update_charge_info()
 
 func _update_charge_info():
-	var energy_needed = int(charge_slider.value) - RobotState.current_energy
-	energy_needed = max(0, energy_needed)  # Ensure we don't show negative values
+	var target_energy = int(charge_slider.value)
+	var energy_needed = target_energy - RobotState.current_energy
+	energy_needed = max(0, energy_needed)
+	
 	charge_info_label.text = "Charge Cost: %d Base Energy" % energy_needed
+	
+	# Update the Robot Energy label to show the projection
+	robot_energy_label.text = "Robot Energy: %d -> %d / %d" % [RobotState.current_energy, target_energy, RobotState.MAX_ENERGY]
 
 
 func _on_charge_slider_changed(new_value: float):
@@ -91,6 +96,10 @@ func _ready():
 	
 	# Calculate initial equipment bonuses
 	_on_equipment_changed()
+	
+	# NOW that equipment is loaded and bonuses applied, ensure we start full!
+	RobotState.ensure_initial_full_charge()
+	
 	update_robot_stats()
 
 func _on_equipment_changed(_item = null):
@@ -106,4 +115,10 @@ func _on_equipment_changed(_item = null):
 func update_robot_stats():
 	# 1. Update der Stat-Labels (die neue Übersicht)
 	base_energy_label.text = "Base Energy: %d / %d" % [RobotState.base_energy_current, RobotState.base_max_energy]
+	
+	# Sync slider max
+	charge_slider.max_value = RobotState.MAX_ENERGY
+	
+	# If the slider is not being dragged (or we just opened the screen), sync its value too?
+	# For now, let's just update the text. The slider value is handled in show_screen and _on_equipment_changed.
 	robot_energy_label.text = "Robot Energy: %d / %d" % [RobotState.current_energy, RobotState.MAX_ENERGY]

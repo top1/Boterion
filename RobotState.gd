@@ -23,7 +23,7 @@ var MAX_ENERGY: int = 60
 var MAX_STORAGE: int = 50
 
 # Current values
-var current_energy: int = 0  # Start at 0, not MAX_ENERGY
+var current_energy: int = 0 # Start at 0, not MAX_ENERGY
 var current_storage: int = 0
 
 # --- KOSTEN-KONSTANTEN ---
@@ -35,8 +35,18 @@ const ENERGY_PER_BLUEPRINT: int = 10
 const ENERGY_PER_FOOD: int = 4
 
 
+var _has_initialized_full_charge: bool = false
+
 func _ready():
 	_recalculate_max_values()
+	# We do NOT charge here anymore. We wait for the equipment to be loaded.
+
+func ensure_initial_full_charge():
+	if not _has_initialized_full_charge:
+		print("--- ROBOTSTATE: Performing INITIAL FULL CHARGE (incl. equipment) ---")
+		current_energy = MAX_ENERGY
+		_has_initialized_full_charge = true
+		emit_signal("energy_changed", MAX_ENERGY)
 
 func initialize_map_if_needed():
 	if map_data.is_empty():

@@ -15,7 +15,7 @@ const RoomBlockScene = preload("res://RoomBlock.tscn")
 @onready var loot_button = %LootButton
 @onready var scavenge_button = %ScavengeButton
 @onready var open_button = %OpenButton
-@onready var mission_planner_label = $MarginContainer/VBoxContainer/HBoxContainer/Panel/Label# Passe den Pfad ggf. an oder mache das Label unique
+@onready var mission_planner_label = $MarginContainer/VBoxContainer/HBoxContainer/Panel/Label # Passe den Pfad ggf. an oder mache das Label unique
 @onready var energy_bar = %EnergyBar
 @onready var mission_list_label = %MissionListLabel
 @onready var remove_last_mission_button = %RemoveLastMissionButton
@@ -491,8 +491,6 @@ func get_final_return_cost() -> int:
 	return last_mission.target_room.distance * RobotState.MOVE_COST_PER_UNIT
 
 
-
-
 func show_screen():
 	# 1. Mache den Screen sichtbar.
 	show()
@@ -512,6 +510,14 @@ func show_screen():
 
 func is_plan_empty() -> bool:
 	return mission_plan.is_empty()
+
+# --- NAVIGATION SAFETY ---
+func can_leave_screen() -> bool:
+	# We cannot leave if there is an active mission plan
+	return is_plan_empty()
+
+func get_leave_warning() -> String:
+	return "Cannot leave while a mission is planned. Please clear the plan or execute it first."
 
 
 func _on_execute_plan_pressed():

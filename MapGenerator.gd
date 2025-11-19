@@ -13,7 +13,7 @@ const ROOM_SIZES_WEIGHTED = [
 	[1, 3], # 3/10 Chance
 	[3, 4], # 4/10 Chance
 	[5, 2], # 2/10 Chance
-	[9, 1]  # 1/10 Chance
+	[9, 1] # 1/10 Chance
 ]
 
 var rng = RandomNumberGenerator.new()
@@ -40,15 +40,25 @@ func _generate_row(id_prefix: String) -> Array[RoomData]:
 	while current_pos < MAP_LENGTH:
 		var room_size = 0
 
-		# --- NEUE LOGIK ---
-		# Wir würfeln so lange eine Raumgröße, bis wir eine finden,
-		# die in den verbleibenden Platz passt.
+		# --- NEUE LOGIK (OPTIMIERT) ---
+		# Wir suchen eine passende Größe, indem wir alle möglichen Größen durchprobieren.
+		# Damit es zufällig bleibt, mischen wir die Optionen vorher.
+		var possible_sizes = [1, 3, 5, 9]
+		possible_sizes.shuffle()
+		
 		var found_fitting_size = false
-		while not found_fitting_size:
-			var potential_size = _get_random_room_size()
-			if current_pos + potential_size <= MAP_LENGTH:
-				room_size = potential_size
+		
+		# Versuche zuerst die zufällig gewählten Größen
+		for size in possible_sizes:
+			if current_pos + size <= MAP_LENGTH:
+				room_size = size
 				found_fitting_size = true
+				break
+		
+		# Fallback: Wenn nichts passt (sollte bei size=1 nicht passieren, aber sicher ist sicher),
+		# nehmen wir die kleinstmögliche Größe, die noch passt.
+		if not found_fitting_size:
+			room_size = 1 # Der kleinste Raum passt immer, solange noch 1 Platz frei ist.
 		# --- ENDE NEUE LOGIK ---
 
 		# Wenn kein passender Raum mehr gefunden werden kann (sollte nie passieren,
@@ -63,14 +73,14 @@ func _generate_row(id_prefix: String) -> Array[RoomData]:
 		new_room.room_id = "%s%d" % [id_prefix, room_counter]
 		
 		# Generiere zufällige Türstärke
-		new_room.door_strength = rng.randi_range(10, new_room.size*42)
+		new_room.door_strength = rng.randi_range(10, new_room.size * 42)
 
 		# Generiere zufällige Beute für jede Ressource
-		var electronics_amount = rng.randi_range(10, new_room.size*21)
+		var electronics_amount = rng.randi_range(10, new_room.size * 21)
 		new_room.loot_pool["electronics"]["initial"] = electronics_amount
 		new_room.loot_pool["electronics"]["current"] = electronics_amount
 
-		var scrap_amount = rng.randi_range(20, new_room.size*69)
+		var scrap_amount = rng.randi_range(20, new_room.size * 69)
 		new_room.loot_pool["scrap_metal"]["initial"] = scrap_amount
 		new_room.loot_pool["scrap_metal"]["current"] = scrap_amount
 
@@ -78,10 +88,9 @@ func _generate_row(id_prefix: String) -> Array[RoomData]:
 		new_room.loot_pool["blueprints"]["initial"] = blueprints_amount
 		new_room.loot_pool["blueprints"]["current"] = blueprints_amount
 
-		var food_amount = rng.randi_range(5, new_room.size*3)
+		var food_amount = rng.randi_range(5, new_room.size * 3)
 		new_room.loot_pool["food"]["initial"] = food_amount
 		new_room.loot_pool["food"]["current"] = food_amount
-		
 		
 		
 		var door_offset = (room_size - 1) / 2
