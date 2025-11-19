@@ -4,6 +4,8 @@
 [ext_resource type="PackedScene" uid="uid://dqyrxafvubfij" path="res://EquipScreen.tscn" id="2_uu6xs"]
 [ext_resource type="PackedScene" uid="uid://bykhhuqt4oyd2" path="res://MapView.tscn" id="4_cm0pq"]
 [ext_resource type="PackedScene" uid="uid://bp4p1ij4cj5pj" path="res://RewardScreen.tscn" id="5_fos0i"]
+[ext_resource type="PackedScene" path="res://MainframeScreen.tscn" id="6_mainframe"]
+[ext_resource type="PackedScene" path="res://CraftingScreen.tscn" id="7_crafting"]
 
 [node name="Main" type="Control"]
 layout_mode = 3
@@ -40,6 +42,16 @@ layout_mode = 1
 unique_name_in_owner = true
 visible = false
 layout_mode = 0
+
+[node name="MainframeScreen" parent="CanvasLayer/ScreenManager" instance=ExtResource("6_mainframe")]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+
+[node name="CraftingScreen" parent="CanvasLayer/ScreenManager" instance=ExtResource("7_crafting")]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
 
 [node name="WarningDialog" type="AcceptDialog" parent="."]
 unique_name_in_owner = true

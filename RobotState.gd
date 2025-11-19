@@ -34,6 +34,23 @@ const ENERGY_PER_SCRAP: int = 2
 const ENERGY_PER_BLUEPRINT: int = 10
 const ENERGY_PER_FOOD: int = 4
 
+# --- PERSISTENT RESOURCES & INVENTORY ---
+var scrap: int = 0
+var electronics: int = 0
+var food: int = 0
+
+var inventory: Array[Resource] = [] # Array of Item resources
+var known_blueprints: Array[Resource] = [] # Array of Item resources (unlocked recipes)
+
+# Daily Research Logic
+var daily_research_cost: int = 0
+var daily_research_options: Array[Resource] = []
+
+# --- SIGNALS ---
+signal resources_changed
+signal inventory_changed
+signal blueprints_changed
+
 
 var _has_initialized_full_charge: bool = false
 
@@ -78,6 +95,70 @@ func start_new_day():
 	print("--- NEW DAY STARTED ---")
 	print("Base Energy reset to: %d / %d" % [base_energy_current, base_max_energy])
 	print("Robot Energy remains: %d / %d" % [current_energy, MAX_ENERGY])
+	
+	generate_daily_research_offer()
+
+func add_resources(loot_dict: Dictionary):
+	if loot_dict.has("scrap_metal"):
+		scrap += loot_dict["scrap_metal"]
+	if loot_dict.has("electronics"):
+		electronics += loot_dict["electronics"]
+	if loot_dict.has("food"):
+		food += loot_dict["food"]
+		# Optional: Auto-convert food to energy? Or keep it?
+		# For now, let's keep it as a resource, maybe for healing or trading later.
+	
+	emit_signal("resources_changed")
+	print("Resources Updated: Scrap=%d, Elec=%d, Food=%d" % [scrap, electronics, food])
+
+func generate_daily_research_offer():
+	# Random cost between 40 and 200
+	daily_research_cost = randi_range(40, 200)
+	# Clear previous options (we will generate them only when paid, or pre-generate? 
+	# Let's generate them when paid to avoid saving them for now, or pre-generate if we want to show them locked)
+	daily_research_options.clear()
+	print("Daily Research Cost set to: %d" % daily_research_cost)
+
+func pay_research_cost() -> bool:
+	if base_energy_current >= daily_research_cost:
+		base_energy_current -= daily_research_cost
+		return true
+	return false
+
+func unlock_blueprint(item: Resource):
+	if not known_blueprints.has(item):
+		known_blueprints.append(item)
+		emit_signal("blueprints_changed")
+		print("Unlocked Blueprint: %s" % item.item_name)
+
+func can_craft(item: Resource) -> bool:
+	var recipe = item.crafting_recipe
+	if recipe.is_empty():
+		return false
+		
+	var cost_scrap = recipe.get("scrap", 0)
+	var cost_elec = recipe.get("electronics", 0)
+	var cost_energy = recipe.get("energy", 0) # Base energy cost for crafting
+	
+	if scrap < cost_scrap: return false
+	if electronics < cost_elec: return false
+	if base_energy_current < cost_energy: return false
+	
+	return true
+
+func craft_item(item: Resource):
+	if can_craft(item):
+		var recipe = item.crafting_recipe
+		scrap -= recipe.get("scrap", 0)
+		electronics -= recipe.get("electronics", 0)
+		base_energy_current -= recipe.get("energy", 0)
+		
+		inventory.append(item)
+		emit_signal("resources_changed")
+		emit_signal("inventory_changed")
+		print("Crafted Item: %s" % item.item_name)
+	else:
+		print("Cannot craft item: Insufficient resources")
 
 func charge_robot_from_base(amount_to_charge: int):
 	# Sicherheitsabfrage: Stelle sicher, dass wir genug Basis-Energie haben.

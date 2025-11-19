@@ -28,6 +28,8 @@ const RoomBlockScene = preload("res://RoomBlock.tscn")
 @onready var debug_visible_label = %DebugVisibleLabel
 @onready var debug_hidden_label = %DebugHiddenLabel
 @onready var to_robot_equip_button = %toRobotEquip
+@onready var to_mainframe_button = %toMainframe
+@onready var to_crafting_button = %toCrafting
 
 var planned_remaining_energy: int = 0
 var mission_plan: Array[Dictionary] = []
@@ -351,6 +353,8 @@ func update_mission_plan_display():
 	mission_list_label.text = display_text
 	remove_last_mission_button.disabled = mission_plan.is_empty()
 	to_robot_equip_button.disabled = not mission_plan.is_empty()
+	to_mainframe_button.disabled = not mission_plan.is_empty()
+	to_crafting_button.disabled = not mission_plan.is_empty()
 	
 func _update_energy_bar_display():
 	# Hole dir die Kosten für den finalen Rückweg
@@ -723,3 +727,15 @@ func _on_to_robot_equip_pressed() -> void:
 		var screen_manager = get_tree().get_first_node_in_group("ScreenManager")
 		if screen_manager:
 			screen_manager.show_screen("equipment")
+
+func _on_to_mainframe_pressed() -> void:
+	if is_plan_empty():
+		var screen_manager = get_tree().get_first_node_in_group("ScreenManager")
+		if screen_manager:
+			screen_manager.show_screen("mainframe")
+
+func _on_to_crafting_pressed() -> void:
+	if is_plan_empty():
+		var screen_manager = get_tree().get_first_node_in_group("ScreenManager")
+		if screen_manager:
+			screen_manager.show_screen("crafting")

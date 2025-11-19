@@ -1,0 +1,112 @@
+[gd_scene load_steps=4 format=3 uid="uid://mainframe_screen_uid"]
+
+[ext_resource type="Script" path="res://MainframeScreen.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://graphics/ui/terminal_bg.png" id="2_bg"]
+[ext_resource type="Texture2D" path="res://graphics/ui/panel_border.png" id="3_border"]
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_bg"]
+texture = ExtResource("2_bg")
+modulate_color = Color(0.8, 0.8, 0.8, 1)
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_panel"]
+texture = ExtResource("3_border")
+texture_margin_left = 5.0
+texture_margin_top = 5.0
+texture_margin_right = 5.0
+texture_margin_bottom = 5.0
+
+[node name="MainframeScreen" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_script")
+
+[node name="Background" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxTexture_bg")
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="Header" type="RichTextLabel" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+bbcode_enabled = true
+text = "[center][b][color=#00ff00]MAINFRAME TERMINAL // RESEARCH DIVISION[/color][/b][/center]"
+fit_content = true
+
+[node name="ResourcePanel" type="PanelContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxTexture_panel")
+
+[node name="ResourceLabel" type="RichTextLabel" parent="MarginContainer/VBoxContainer/ResourcePanel"]
+unique_name_in_owner = true
+layout_mode = 2
+bbcode_enabled = true
+text = "Base Energy: 100 | Scrap: 0 | Electronics: 0"
+fit_content = true
+
+[node name="ResearchArea" type="VBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+alignment = 1
+
+[node name="ResearchButton" type="Button" parent="MarginContainer/VBoxContainer/ResearchArea"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(300, 60)
+layout_mode = 2
+size_flags_horizontal = 4
+text = "INITIATE RESEARCH PROTOCOL (Cost: ???)"
+
+[node name="BlueprintSelection" type="HBoxContainer" parent="MarginContainer/VBoxContainer/ResearchArea"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="Option1" type="Button" parent="MarginContainer/VBoxContainer/ResearchArea/BlueprintSelection"]
+custom_minimum_size = Vector2(200, 300)
+layout_mode = 2
+text = "Blueprint A"
+
+[node name="Option2" type="Button" parent="MarginContainer/VBoxContainer/ResearchArea/BlueprintSelection"]
+custom_minimum_size = Vector2(200, 300)
+layout_mode = 2
+text = "Blueprint B"
+
+[node name="Option3" type="Button" parent="MarginContainer/VBoxContainer/ResearchArea/BlueprintSelection"]
+custom_minimum_size = Vector2(200, 300)
+layout_mode = 2
+text = "Blueprint C"
+
+[node name="Footer" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+alignment = 1
+
+[node name="BackButton" type="Button" parent="MarginContainer/VBoxContainer/Footer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(150, 40)
+layout_mode = 2
+text = "DISCONNECT"

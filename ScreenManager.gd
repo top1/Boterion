@@ -2,7 +2,7 @@
 extends Control
 
 # Get references to all your screen containers
-@onready var main_menu_screen = $MainMenuScreen
+# Get references to all your screen containers
 @onready var equip_screen = $EquipScreen
 @onready var game_screen = $GameScreen
 @onready var warning_dialog = %WarningDialog
@@ -22,8 +22,14 @@ func _ready():
 	for screen_name in screens:
 		screens[screen_name].hide()
 	
-	# Show the initial screen
-	show_screen("game") # Or "main_menu" if you build one
+	# Dynamically find or assume these exist in Main.tscn (We will add them next)
+	if has_node("MainframeScreen"):
+		screens["mainframe"] = $MainframeScreen
+	if has_node("CraftingScreen"):
+		screens["crafting"] = $CraftingScreen
+		
+	show_screen("game")
+		
 
 func show_screen(screen_name: String):
 	# --- GENERIC SAFETY CHECK ---
@@ -63,4 +69,4 @@ func _on_equipment_button_pressed() -> void:
 
 
 func _on_back_pressed() -> void:
-	show_screen("main_menu")
+	show_screen("game")

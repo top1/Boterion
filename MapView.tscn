@@ -1,17 +1,13 @@
-[gd_scene load_steps=7 format=3 uid="uid://bykhhuqt4oyd2"]
+[gd_scene load_steps=5 format=3 uid="uid://bykhhuqt4oyd2"]
 
 [ext_resource type="Script" uid="uid://b4qqqxc7dnm38" path="res://MapView.gd" id="1_u636o"]
 [ext_resource type="Texture2D" uid="uid://p7fqhhytpsss" path="res://graphics/rooms/control_room_s.png" id="2_my5tf"]
 [ext_resource type="Texture2D" uid="uid://1h2mvfrvjtfl" path="res://graphics/ui/terminal_bg.png" id="3_mcy4a"]
-[ext_resource type="Texture2D" uid="uid://b6x212l7pibwv" path="res://graphics/ui/panel_border.png" id="4_55l1y"]
 
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_1f5pp"]
 texture = ExtResource("3_mcy4a")
 axis_stretch_horizontal = 2
 modulate_color = Color(0, 1, 1, 1)
-
-[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_k3ugk"]
-texture = ExtResource("4_55l1y")
 
 [node name="MapView" type="Control"]
 layout_mode = 3
@@ -138,7 +134,19 @@ size_flags_vertical = 4
 unique_name_in_owner = true
 custom_minimum_size = Vector2(100, 25)
 layout_mode = 2
-text = "WORKSHOP (equip Robot)"
+text = "WORKSHOP (Equip)"
+
+[node name="toMainframe" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer2/HBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(100, 25)
+layout_mode = 2
+text = "MAINFRAME (Research)"
+
+[node name="toCrafting" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer2/HBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(100, 25)
+layout_mode = 2
+text = "FABRICATION (Craft)"
 
 [node name="RemoveLastMissionButton" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer2/HBoxContainer"]
 unique_name_in_owner = true
@@ -174,7 +182,6 @@ layout_mode = 2
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-theme_override_styles/panel = SubResource("StyleBoxTexture_k3ugk")
 
 [node name="RoomInfoLabel" type="RichTextLabel" parent="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer/Panel2"]
 unique_name_in_owner = true
@@ -264,4 +271,6 @@ unique_name_in_owner = true
 layout_mode = 2
 
 [connection signal="pressed" from="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer2/HBoxContainer/toRobotEquip" to="." method="_on_to_robot_equip_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer2/HBoxContainer/toMainframe" to="." method="_on_to_mainframe_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer2/HBoxContainer/toCrafting" to="." method="_on_to_crafting_pressed"]
 [connection signal="pressed" from="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer2/HBoxContainer/ExecutePlanButton" to="." method="_on_execute_plan_button_pressed"]
