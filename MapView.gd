@@ -15,7 +15,7 @@ const RoomBlockScene = preload("res://RoomBlock.tscn")
 @onready var loot_button = %LootButton
 @onready var scavenge_button = %ScavengeButton
 @onready var open_button = %OpenButton
-@onready var mission_planner_label = $MarginContainer/VBoxContainer/HBoxContainer/Panel/Label # Passe den Pfad ggf. an oder mache das Label unique
+# @onready var mission_planner_label = ... # REMOVED to fix crash
 @onready var energy_bar = %EnergyBar
 @onready var mission_list_label = %MissionListLabel
 @onready var remove_last_mission_button = %RemoveLastMissionButton
@@ -37,6 +37,7 @@ var last_position_in_plan: int = 0
 # Eine Instanz unseres Generators.
 var current_selected_room: RoomData = null
 var current_selected_button: Button = null
+var repair_button: Button = null
 # Die Seed für die Kartengenerierung.
 var map_seed = 1337
 
@@ -57,6 +58,53 @@ func _ready():
 	
 	# --- VISUAL OVERHAUL SETUP ---
 	_apply_retro_theme()
+	
+	# 1. Fix "Mission Plan" Label Margin
+	# The previous attempt crashed because the label reference was wrong.
+	# We will solve the margin issue by adding spaces to the text in update_mission_plan_display instead.
+	
+	# 2. Robot Energy Bar Cleanup
+	energy_bar.show_percentage = false # Remove the "100%" text
+	energy_bar.custom_minimum_size.y = 40
+	energy_bar_label.add_theme_font_size_override("font_size", 24)
+	
+	# 3. Create Base Energy Bar (Cyan)
+	# We want it near the Robot Energy Bar. Let's find the parent container.
+	var energy_container = energy_bar.get_parent()
+	
+	# Check if we already added it (to prevent duplicates on reload if _ready runs again)
+	if not energy_container.has_node("BaseEnergyBar"):
+		var base_energy_bar = ProgressBar.new()
+		base_energy_bar.name = "BaseEnergyBar"
+		base_energy_bar.custom_minimum_size.y = 30 # Slightly smaller than main bar
+		base_energy_bar.show_percentage = false
+		base_energy_bar.modulate = Color(0, 1, 1) # Cyan
+		
+		var base_energy_label = Label.new()
+		base_energy_label.name = "BaseEnergyLabel"
+		base_energy_label.text = "Base Energy: 0 / 0"
+		base_energy_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		base_energy_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		base_energy_label.set_anchors_preset(Control.PRESET_FULL_RECT)
+		base_energy_label.add_theme_font_size_override("font_size", 18)
+		base_energy_label.add_theme_color_override("font_color", Color(0, 0, 0)) # Black text for contrast
+		
+		base_energy_bar.add_child(base_energy_label)
+		
+		# Add it BEFORE the robot energy bar (so it's on top)
+		energy_container.add_child(base_energy_bar)
+		energy_container.move_child(base_energy_bar, energy_bar.get_index())
+	
+	# 4. Create Repair Button dynamically
+	if not action_buttons_container.has_node("RepairButton"):
+		repair_button = Button.new()
+		repair_button.text = "REPAIR FACTORY (50E)"
+		repair_button.name = "RepairButton"
+		repair_button.pressed.connect(_on_repair_pressed)
+		action_buttons_container.add_child(repair_button)
+		repair_button.hide()
+	else:
+		repair_button = action_buttons_container.get_node("RepairButton")
 	
 	show_screen()
 
@@ -221,36 +269,78 @@ func _on_room_selected(room_data: RoomData, room_node: Button = null):
 		var info_text = "[color=#88ccff][b]ROOM %s PREVIEW:[/b][/color]\n" % room_data.room_id
 		info_text += "[color=#555555]--------------------[/color]\n"
 		info_text += "Travel Cost to here: [color=#ff5555]%d Energy[/color]\n" % travel_cost
-		info_text += "Status: %s\n" % ("[color=#00ff00]SCANNED[/color]" if room_data.is_scanned else "[color=#ff0000]UNSCANNED[/color]")
 		
-		if room_data.is_scanned:
-			info_text += "Contents:\n"
-			info_text += "  Scavenge: [color=#00ffff]%d E[/color], [color=#aaaaaa]%d S[/color]\n" % [room_data.loot_pool["electronics"]["current"], room_data.loot_pool["scrap_metal"]["current"]]
-			info_text += "  Loot: [color=#ff00ff]%d B[/color], [color=#ffaa00]%d F[/color]\n" % [room_data.loot_pool["blueprints"]["current"], room_data.loot_pool["food"]["current"]]
+		# --- FACTORY LOGIC ---
+		# Only show factory status if SCANNED!
+		if room_data.type == RoomData.RoomType.FACTORY and room_data.is_scanned:
+			info_text += "Type: [color=#ffaa00]ANCIENT FACTORY[/color]\n"
+			if room_data.is_repaired:
+				info_text += "Status: [color=#00ff00]OPERATIONAL[/color]\n"
+				info_text += "Providing additional base energy."
+				action_buttons_container.hide()
+			else:
+				# Require Door Open!
+				if not room_data.is_door_open and not is_action_planned_for_room(room_data.room_id, "OPEN"):
+					info_text += "Status: [color=#ff0000]OFFLINE (LOCKED)[/color]\n"
+					info_text += "Door must be opened to access controls.\n"
+					
+					var can_open = false
+					var total_open_cost = travel_cost + room_data.door_strength + (room_data.distance * RobotState.MOVE_COST_PER_UNIT)
+					if planned_remaining_energy >= total_open_cost:
+						can_open = true
+						
+					action_buttons_container.show()
+					scan_button.hide(); open_button.visible = can_open; loot_button.hide(); scavenge_button.hide(); repair_button.hide()
+					
+				else:
+					info_text += "Status: [color=#ff0000]OFFLINE[/color]\n"
+					info_text += "Can be repaired to boost Base Energy.\n"
+					info_text += "Repair Cost: [color=#ff5555]50 Energy[/color]"
+					
+					var can_repair = false
+					if not is_action_planned_for_room(room_data.room_id, "REPAIR"):
+						var total_repair_cost = travel_cost + 50 + (room_data.distance * RobotState.MOVE_COST_PER_UNIT)
+						if planned_remaining_energy >= total_repair_cost:
+							can_repair = true
+					
+					action_buttons_container.show()
+					scan_button.hide(); open_button.hide(); loot_button.hide(); scavenge_button.hide()
+					repair_button.visible = can_repair
+		# --- END FACTORY LOGIC ---
+		else:
+			# Standard logic for non-factory OR unscanned factory
+			info_text += "Status: %s\n" % ("[color=#00ff00]SCANNED[/color]" if room_data.is_scanned else "[color=#ff0000]UNSCANNED[/color]")
+			
+			if room_data.is_scanned:
+				info_text += "Contents:\n"
+				info_text += "  Scavenge: [color=#00ffff]%d E[/color], [color=#aaaaaa]%d S[/color]\n" % [room_data.loot_pool["electronics"]["current"], room_data.loot_pool["scrap_metal"]["current"]]
+				info_text += "  Loot: [color=#ff00ff]%d B[/color], [color=#ffaa00]%d F[/color]\n" % [room_data.loot_pool["blueprints"]["current"], room_data.loot_pool["food"]["current"]]
 
-		var can_scan = false
-		if not room_data.is_scanned and not is_action_planned_for_room(room_data.room_id, "SCAN"):
-			var total_scan_cost = travel_cost + RobotState.SCAN_COST + (room_data.distance * RobotState.MOVE_COST_PER_UNIT)
-			if planned_remaining_energy >= total_scan_cost:
-				can_scan = true
-		
-		var can_open = false
-		if not room_data.is_door_open and not is_action_planned_for_room(room_data.room_id, "OPEN"):
-			var total_open_cost = travel_cost + room_data.door_strength + (room_data.distance * RobotState.MOVE_COST_PER_UNIT)
-			if planned_remaining_energy >= total_open_cost:
-				can_open = true
+			var can_scan = false
+			if not room_data.is_scanned and not is_action_planned_for_room(room_data.room_id, "SCAN"):
+				var total_scan_cost = travel_cost + RobotState.SCAN_COST + (room_data.distance * RobotState.MOVE_COST_PER_UNIT)
+				if planned_remaining_energy >= total_scan_cost:
+					can_scan = true
+			
+			var can_open = false
+			if not room_data.is_door_open and not is_action_planned_for_room(room_data.room_id, "OPEN"):
+				var total_open_cost = travel_cost + room_data.door_strength + (room_data.distance * RobotState.MOVE_COST_PER_UNIT)
+				
+				if planned_remaining_energy >= total_open_cost:
+					can_open = true
+
+			if can_scan or can_open:
+				action_buttons_container.show()
+				scan_button.visible = can_scan
+				open_button.visible = can_open
+				loot_button.hide()
+				scavenge_button.hide()
+				repair_button.hide()
+			else:
+				action_buttons_container.hide()
 
 		room_info_label.text = info_text
 		
-		if can_scan or can_open:
-			action_buttons_container.show()
-			scan_button.visible = can_scan
-			open_button.visible = can_open
-			loot_button.hide()
-			scavenge_button.hide()
-		else:
-			action_buttons_container.hide()
-
 		if debug_inspector_panel.visible:
 			update_debug_inspector()
 
@@ -278,6 +368,20 @@ func _on_open_pressed():
 	if planned_remaining_energy >= total_cost:
 		var mission = {
 			"type": "OPEN", "room_id": current_selected_room.room_id,
+			"cost": total_cost, "target_room": current_selected_room,
+			"travel_cost": travel_cost, "action_cost": action_cost
+		}
+		add_mission_to_plan(mission)
+
+func _on_repair_pressed():
+	if not current_selected_room: return
+	var travel_cost = abs(current_selected_room.distance - last_position_in_plan) * RobotState.MOVE_COST_PER_UNIT
+	var action_cost = 50 # Fixed cost
+	var total_cost = travel_cost + action_cost
+	
+	if planned_remaining_energy >= total_cost:
+		var mission = {
+			"type": "REPAIR", "room_id": current_selected_room.room_id,
 			"cost": total_cost, "target_room": current_selected_room,
 			"travel_cost": travel_cost, "action_cost": action_cost
 		}
@@ -312,18 +416,19 @@ func add_mission_to_plan(mission: Dictionary):
 	
 func update_mission_plan_display():
 	# --- 1. SETUP ---
-	var display_text = "[color=#ffffff][b]Mission Plan:[/b][/color]\n"
-	display_text += "[color=#555555]--------------------[/color]\n"
+	# ADDED PADDING SPACE TO FIX MARGIN ISSUE
+	var display_text = " [color=#ffffff][b]Mission Plan:[/b][/color]\n"
+	display_text += " [color=#555555]--------------------[/color]\n"
 	
 	# --- 2. MISSIONEN AUFLISTEN MIT ALLEN DETAILS ---
 	for mission in mission_plan:
 		# Zeile 1: Hauptaktion und Gesamtkosten für diesen Schritt
-		display_text += "> [color=#ffff00]%s[/color] Room %s (Total: [color=#ff5555]%d[/color])\n" % [mission.type, mission.room_id, mission.cost]
+		display_text += " > [color=#ffff00]%s[/color] Room %s (Total: [color=#ff5555]%d[/color])\n" % [mission.type, mission.room_id, mission.cost]
 		
 		# --- NEU & WIEDERHERGESTELLT: Die Kostenaufschlüsselung ---
 		# Zeige die Details nur an, wenn es auch Kosten gab.
 		if mission.cost > 0:
-			display_text += "    [color=#aaaaaa]Travel: %d, Action: %d[/color]\n" % [mission.get("travel_cost", 0), mission.get("action_cost", 0)]
+			display_text += "     [color=#aaaaaa]Travel: %d, Action: %d[/color]\n" % [mission.get("travel_cost", 0), mission.get("action_cost", 0)]
 		# --------------------------------------------------------
 
 		# Zeile 3 (optional): Potenzielle Beute
@@ -334,20 +439,20 @@ func update_mission_plan_display():
 				if loot_info[key] > 0:
 					loot_string_parts.append("%d %s" % [loot_info[key], key])
 			if not loot_string_parts.is_empty():
-				display_text += "    [color=#00ff00]~Outcome: " + ", ".join(loot_string_parts) + "[/color]\n"
+				display_text += "     [color=#00ff00]~Outcome: " + ", ".join(loot_string_parts) + "[/color]\n"
 
 	# --- 3. RÜCKWEG UND ZUSAMMENFASSUNG ---
 	var final_return_cost = get_final_return_cost()
 	
 	if final_return_cost > 0:
-		display_text += "[color=#555555]--------------------[/color]\n"
-		display_text += "> Return to Base (Cost: [color=#ff5555]%d[/color])\n" % final_return_cost
+		display_text += " [color=#555555]--------------------[/color]\n"
+		display_text += " > Return to Base (Cost: [color=#ff5555]%d[/color])\n" % final_return_cost
 	
 	var total_actions_cost = RobotState.MAX_ENERGY - planned_remaining_energy
 	var total_cost_with_return = total_actions_cost + final_return_cost
 	
-	display_text += "[color=#555555]--------------------[/color]\n"
-	display_text += "Total Planned Cost: [color=#ff5555]%d[/color]" % total_cost_with_return
+	display_text += " [color=#555555]--------------------[/color]\n"
+	display_text += " Total Planned Cost: [color=#ff5555]%d[/color]" % total_cost_with_return
 
 	# --- 4. FINALES UI-UPDATE ---
 	mission_list_label.text = display_text
@@ -355,7 +460,8 @@ func update_mission_plan_display():
 	to_robot_equip_button.disabled = not mission_plan.is_empty()
 	to_mainframe_button.disabled = not mission_plan.is_empty()
 	to_crafting_button.disabled = not mission_plan.is_empty()
-	
+
+
 func _update_energy_bar_display():
 	# Hole dir die Kosten für den finalen Rückweg
 	var return_cost = get_final_return_cost()
@@ -366,7 +472,17 @@ func _update_energy_bar_display():
 	# Aktualisiere den Balken und das Label mit den korrekten Werten
 	energy_bar.max_value = RobotState.MAX_ENERGY
 	energy_bar.value = final_remaining_energy
-	energy_bar_label.text = "Energy: %d / %d" % [final_remaining_energy, RobotState.MAX_ENERGY]
+	energy_bar_label.text = "Robot Energy: %d / %d" % [final_remaining_energy, RobotState.MAX_ENERGY]
+	
+	# --- UPDATE BASE ENERGY BAR ---
+	var energy_container = energy_bar.get_parent()
+	var base_bar = energy_container.get_node_or_null("BaseEnergyBar")
+	if base_bar:
+		base_bar.max_value = RobotState.base_max_energy
+		base_bar.value = RobotState.base_energy_current
+		var base_label = base_bar.get_node_or_null("BaseEnergyLabel")
+		if base_label:
+			base_label.text = "Base Energy: %d / %d" % [RobotState.base_energy_current, RobotState.base_max_energy]
 
 func is_action_planned_for_room(room_id: String, action_type: String) -> bool:
 	# Gehe durch jede Mission in unserem Plan
@@ -541,7 +657,17 @@ func get_leave_warning() -> String:
 
 func _on_execute_plan_pressed():
 	if mission_plan.is_empty():
-		return # Nichts zu tun
+		# --- END DAY LOGIC ---
+		# If plan is empty, this button acts as "End Day" / "Sleep"
+		# We trigger the reward screen with empty loot to simulate end of day
+		print("--- ENDING DAY (NO MISSIONS) ---")
+		var screen_manager = get_tree().get_first_node_in_group("ScreenManager")
+		if screen_manager:
+			var reward_screen = screen_manager.get_node("RewardScreen")
+			if reward_screen and reward_screen.has_method("show_rewards"):
+				reward_screen.show_rewards({}) # Empty loot
+			screen_manager.show_screen("reward")
+		return
 
 	print("--- EXECUTING MISSION PLAN ---")
 	
@@ -565,7 +691,18 @@ func _on_execute_plan_pressed():
 				room.is_door_open = true
 				print("Door to room %s opened." % room.room_id)
 				
+			"REPAIR":
+				room.is_repaired = true
+				RobotState.increase_base_energy(10)
+				print("Factory in room %s repaired. Base Energy Increased." % room.room_id)
+				
 			"SCAVENGE":
+				# --- ACCIDENTAL DESTRUCTION LOGIC ---
+				if room.type == RoomData.RoomType.FACTORY:
+					room.type = RoomData.RoomType.STANDARD
+					print("WARNING: Ancient Factory in Room %s destroyed by scavenging!" % room.room_id)
+				# ------------------------------------
+
 				var energy_planned = mission.cost
 				var energy_actually_spent = 0
 				# KORRIGIERT: Verwende RobotState
@@ -586,6 +723,12 @@ func _on_execute_plan_pressed():
 					collected_loot["energy_refund"] = collected_loot.get("energy_refund", 0) + unused_energy
 				
 			"LOOT":
+				# --- ACCIDENTAL DESTRUCTION LOGIC ---
+				if room.type == RoomData.RoomType.FACTORY:
+					room.type = RoomData.RoomType.STANDARD
+					print("WARNING: Ancient Factory in Room %s destroyed by looting!" % room.room_id)
+				# ------------------------------------
+
 				var energy_planned = mission.cost
 				var energy_actually_spent = 0
 				# KORRIGIERT: Verwende RobotState

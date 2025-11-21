@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="Item" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://Item.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://items/lithium_ion_cell.png" id="2_icon"]
+
+[resource]
+script = ExtResource("1_script")
+item_name = "Lithium Ion Cell"
+item_texture = ExtResource("2_icon")
+item_type = "BATTERY"
+rarity = "RARE"
+stats_modifier = {
+"max_energy": 15
+}
+blueprint_id = "lithium_ion_cell"
+crafting_recipe = {
+"electronics": 5,
+"energy": 10,
+"scrap": 5
+}

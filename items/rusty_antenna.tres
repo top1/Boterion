@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="Item" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://Item.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://icon.svg" id="2_icon"]
+
+[resource]
+script = ExtResource("1_script")
+item_name = "Rusty Antenna"
+item_texture = ExtResource("2_icon")
+item_type = "TOOL"
+rarity = "COMMON"
+stats_modifier = {
+"max_energy": 5
+}
+blueprint_id = "rusty_antenna"
+crafting_recipe = {
+"electronics": 1,
+"energy": 0,
+"scrap": 5
+}

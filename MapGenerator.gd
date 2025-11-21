@@ -69,7 +69,18 @@ func _generate_row(id_prefix: String) -> Array[RoomData]:
 		# Erstelle das RoomData-Objekt mit der passenden Größe.
 		var new_room = RoomData.new()
 		new_room.size = room_size
-		new_room.type = _get_random_room_type()
+		
+		# Calculate distance early
+		var door_offset = (room_size - 1) / 2
+		new_room.distance = int(current_pos + door_offset) + 1
+		
+		# Force Factory spawn near base (distance <= 5)
+		# Only spawn one factory per row (or globally? Let's say one per row for now)
+		if new_room.distance <= 5 and rng.randf() < 0.3: # 30% chance per room near base
+			new_room.type = RoomData.RoomType.FACTORY
+		else:
+			new_room.type = _get_random_room_type()
+			
 		new_room.room_id = "%s%d" % [id_prefix, room_counter]
 		
 		# Generiere zufällige Türstärke
@@ -93,7 +104,6 @@ func _generate_row(id_prefix: String) -> Array[RoomData]:
 		new_room.loot_pool["food"]["current"] = food_amount
 		
 		
-		var door_offset = (room_size - 1) / 2
 		# Strange counting but first room would otherwhise be on 0-distance
 		new_room.distance = int(current_pos + door_offset) + 1
 

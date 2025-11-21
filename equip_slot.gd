@@ -87,7 +87,7 @@ func _get_drag_data(at_position: Vector2) -> Variant:
 	drag_preview_texture.texture = current_equipped_item.item_texture
 	drag_preview_texture.custom_minimum_size = Vector2(64, 64)
 	drag_preview_wrapper.add_child(drag_preview_texture)
-	drag_preview_texture.position = -drag_preview_texture.custom_minimum_size / 2
+	drag_preview_texture.position = - drag_preview_texture.custom_minimum_size / 2
 	set_drag_preview(drag_preview_wrapper)
 	
 	self.current_equipped_item = null
@@ -97,3 +97,21 @@ func _get_drag_data(at_position: Vector2) -> Variant:
 		main_screen.update_robot_stats()
 
 	return drag_data
+
+# --- NEW METHODS FOR CLICK-EQUIP SUPPORT ---
+
+func can_accept_item(item: Item) -> bool:
+	if allowed_item_types.is_empty():
+		return true
+	return allowed_item_types.has(item.item_type)
+
+func equip_item(item: Item):
+	# If we already have an item, we might need to handle swapping or unequipping
+	# But for the simple "click to equip" logic, we just overwrite.
+	# The caller (RobotEquipScreen) handles removing it from inventory.
+	self.current_equipped_item = item
+	update_display()
+	
+	# Update stats
+	if main_screen:
+		main_screen.update_robot_stats()

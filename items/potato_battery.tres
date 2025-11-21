@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="Item" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://Item.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://items/potato_battery.png" id="2_icon"]
+
+[resource]
+script = ExtResource("1_script")
+item_name = "Potato Battery"
+item_texture = ExtResource("2_icon")
+item_type = "BATTERY"
+rarity = "COMMON"
+stats_modifier = {
+"max_energy": 2
+}
+blueprint_id = "potato_battery"
+crafting_recipe = {
+"electronics": 0,
+"energy": 0,
+"scrap": 1,
+"food": 1
+}

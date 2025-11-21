@@ -7,7 +7,7 @@ signal equipment_changed
 # --- UI-Referenzen ---
 # (Deine bisherigen Referenzen)
 @onready var confirm_button = %ConfirmButton
-@onready var battery_item_grid = %BatteryItemGrid # Annahme, du hast so etwas
+@onready var inventory_grid = $MainLayout/InventoryPanel/ItemGrid
 
 # NEU: Referenzen für die Auflade-Sektion
 @onready var base_energy_label = %BaseEnergyLabel
@@ -40,6 +40,7 @@ func show_screen():
 	
 	update_robot_stats()
 	_update_charge_info()
+	_update_inventory_list()
 
 func _update_charge_info():
 	var target_energy = int(charge_slider.value)
@@ -100,7 +101,65 @@ func _ready():
 	# NOW that equipment is loaded and bonuses applied, ensure we start full!
 	RobotState.ensure_initial_full_charge()
 	
+	# Connect to inventory changes so the grid updates when we add debug items
+	RobotState.inventory_changed.connect(_update_inventory_list)
+	
 	update_robot_stats()
+	_update_inventory_list()
+
+func _update_inventory_list():
+	# Clear existing children
+	for child in inventory_grid.get_children():
+		child.queue_free()
+	
+	# Populate with current inventory
+	for item in RobotState.inventory:
+		var slot = PanelContainer.new()
+		slot.custom_minimum_size = Vector2(64, 64)
+		
+		var btn = Button.new()
+		# FIX: Use icon if available, otherwise full name with wrap
+		if item.item_texture:
+			btn.icon = item.item_texture
+			btn.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			btn.expand_icon = true
+		else:
+			btn.text = item.item_name # Full name
+			btn.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+			btn.clip_text = true
+			
+		var desc = item.description if "description" in item else ""
+		btn.tooltip_text = item.item_name + "\n" + desc
+		btn.set_anchors_preset(Control.PRESET_FULL_RECT)
+		btn.pressed.connect(_on_inventory_item_pressed.bind(item))
+		
+		slot.add_child(btn)
+		inventory_grid.add_child(slot)
+
+func _on_inventory_item_pressed(item):
+	# Try to find a compatible slot
+	for slot in equipment_slots:
+		# Safety check if slot has the method (in case script is still missing on node)
+		if slot.has_method("can_accept_item") and slot.can_accept_item(item):
+			# If slot is empty, just equip
+			if slot.current_equipped_item == null:
+				slot.equip_item(item)
+				RobotState.inventory.erase(item)
+				_update_inventory_list()
+				return
+			# If slot is full, maybe swap? For now, just skip to next empty or compatible
+			# Ideally we'd swap, but let's keep it simple: only equip to empty slots first
+			
+	# Second pass: Swap with first compatible slot if no empty ones found
+	for slot in equipment_slots:
+		if slot.has_method("can_accept_item") and slot.can_accept_item(item):
+			var old_item = slot.current_equipped_item
+			slot.equip_item(item)
+			RobotState.inventory.erase(item)
+			if old_item:
+				RobotState.inventory.append(old_item)
+			_update_inventory_list()
+			return
 
 func _on_equipment_changed(_item = null):
 	# Capture old max energy before recalculating
@@ -126,11 +185,14 @@ func _on_equipment_changed(_item = null):
 
 func update_robot_stats():
 	# 1. Update der Stat-Labels (die neue Übersicht)
-	base_energy_label.text = "Base Energy: %d / %d" % [RobotState.base_energy_current, RobotState.base_max_energy]
+	# Use colors to distinguish (using modulate since these are standard Labels)
+	base_energy_label.text = "BASE ENERGY (HOME): %d / %d" % [RobotState.base_energy_current, RobotState.base_max_energy]
+	base_energy_label.modulate = Color(0, 1, 1) # Cyan
 	
 	# Sync slider max
 	charge_slider.max_value = RobotState.MAX_ENERGY
 	
 	# If the slider is not being dragged (or we just opened the screen), sync its value too?
 	# For now, let's just update the text. The slider value is handled in show_screen and _on_equipment_changed.
-	robot_energy_label.text = "Robot Energy: %d / %d" % [RobotState.current_energy, RobotState.MAX_ENERGY]
+	robot_energy_label.text = "ROBOT BATTERY (RUN): %d / %d" % [RobotState.current_energy, RobotState.MAX_ENERGY]
+	robot_energy_label.modulate = Color(0, 1, 0) # Green

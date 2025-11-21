@@ -5,10 +5,12 @@ enum RoomType {
 	STANDARD,
 	TEC,
 	HABITAT,
+	FACTORY,
 }
 
-enum LootingState { NONE, LOOTING, SCAVENGING }
+enum LootingState {NONE, LOOTING, SCAVENGING}
 @export var looting_state: LootingState = LootingState.NONE
+@export var is_repaired: bool = false
 # --- Alte Eigenschaften ---
 @export var size: int = 1
 @export var type: RoomType = RoomType.STANDARD

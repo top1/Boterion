@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="Item" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://Item.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://items/heavy_duty_frame.png" id="2_icon"]
+
+[resource]
+script = ExtResource("1_script")
+item_name = "Heavy Duty Frame"
+item_texture = ExtResource("2_icon")
+item_type = "STORAGE"
+stats_modifier = {
+"max_energy": 5,
+"max_storage": 15
+}
+blueprint_id = "heavy_duty_frame"
+crafting_recipe = {
+"electronics": 5,
+"energy": 0,
+"scrap": 40
+}

@@ -15,7 +15,8 @@ var base_energy_current: int = 100
 
 # --- ROBOTER-WERTE (KORRIGIERT) ---
 # Core robot stats
-var robot_base_max_energy: int = 60
+# Core robot stats
+var robot_base_max_energy: int = 120
 var robot_base_max_storage: int = 50
 var bonus_max_energy: int = 0
 var bonus_max_storage: int = 0
@@ -27,7 +28,7 @@ var current_energy: int = 0 # Start at 0, not MAX_ENERGY
 var current_storage: int = 0
 
 # --- KOSTEN-KONSTANTEN ---
-const MOVE_COST_PER_UNIT: int = 10
+const MOVE_COST_PER_UNIT: int = 2
 const SCAN_COST: int = 5
 const ENERGY_PER_ELECTRONIC: int = 3
 const ENERGY_PER_SCRAP: int = 2
@@ -56,6 +57,46 @@ var _has_initialized_full_charge: bool = false
 
 func _ready():
 	_recalculate_max_values()
+	
+	# --- DEBUG: ADD NEW ITEMS FOR TESTING ---
+	call_deferred("_debug_add_test_items")
+
+func _debug_add_test_items():
+	print("--- DEBUG: Adding Test Items ---")
+	var items_to_add = [
+		"res://items/solar_panel.tres",
+		"res://items/quantum_storage.tres",
+		"res://items/heavy_duty_frame.tres",
+		"res://items/overclocked_core.tres",
+		"res://items/capacitor_bank.tres",
+		"res://items/potato_battery.tres",
+		"res://items/duct_tape_pouch.tres",
+		"res://items/rusty_antenna.tres",
+		"res://items/cardboard_box.tres",
+		"res://items/lithium_ion_cell.tres",
+		"res://items/cargo_net.tres",
+		"res://items/swiss_army_bot_tool.tres",
+		"res://items/mini_fusion_reactor.tres",
+		"res://items/expanded_cargo_pod.tres",
+		"res://items/zero_point_module.tres",
+		"res://items/black_hole_pocket.tres"
+	]
+	
+	for path in items_to_add:
+		if ResourceLoader.exists(path):
+			var item = load(path)
+			if item:
+				# Add to inventory
+				inventory.append(item)
+				# Add to known blueprints
+				if not known_blueprints.has(item):
+					known_blueprints.append(item)
+				print("DEBUG: Added %s to inventory and blueprints." % item.item_name)
+	
+	emit_signal("inventory_changed")
+	emit_signal("blueprints_changed")
+	_recalculate_max_values() # In case passive stats apply immediately (though they usually need equipping)
+
 	# We do NOT charge here anymore. We wait for the equipment to be loaded.
 
 func ensure_initial_full_charge():
@@ -88,16 +129,23 @@ func update_equipment_bonuses(bonus_energy: int, bonus_storage: int):
 	bonus_max_storage = bonus_storage
 	_recalculate_max_values()
 
-func start_new_day():
+func start_new_day(regenerate_map: bool = false):
 	# Only reset base energy, NOT robot energy
 	base_energy_current = base_max_energy
-	
+
 	print("--- NEW DAY STARTED ---")
 	print("Base Energy reset to: %d / %d" % [base_energy_current, base_max_energy])
 	print("Robot Energy remains: %d / %d" % [current_energy, MAX_ENERGY])
+
+	# Ensure map exists (but don't clear it unless we want to force regen)
+	initialize_map_if_needed()
 	
 	generate_daily_research_offer()
-
+func calculate_path_cost(target_room_distance: int, action_cost: int) -> void:
+	var travel_cost = target_room_distance * MOVE_COST_PER_UNIT
+	var return_cost = target_room_distance * MOVE_COST_PER_UNIT
+	var total = travel_cost + action_cost + return_cost
+	print("DEBUG PATH COST: Dist: %d | Travel: %d | Action: %d | Return: %d | Total: %d" % [target_room_distance, travel_cost, action_cost, return_cost, total])
 func add_resources(loot_dict: Dictionary):
 	if loot_dict.has("scrap_metal"):
 		scrap += loot_dict["scrap_metal"]
@@ -112,8 +160,8 @@ func add_resources(loot_dict: Dictionary):
 	print("Resources Updated: Scrap=%d, Elec=%d, Food=%d" % [scrap, electronics, food])
 
 func generate_daily_research_offer():
-	# Random cost between 40 and 200
-	daily_research_cost = randi_range(40, 200)
+	# Random cost between 40 and 100
+	daily_research_cost = randi_range(40, 100)
 	# Clear previous options (we will generate them only when paid, or pre-generate? 
 	# Let's generate them when paid to avoid saving them for now, or pre-generate if we want to show them locked)
 	daily_research_options.clear()
@@ -173,3 +221,10 @@ func charge_robot_from_base(amount_to_charge: int):
 		print("Charged robot with %d energy. Cost: %d Base Energy." % [amount_to_charge, amount_to_charge])
 	else:
 		print("ERROR: Not enough base energy to perform charge!")
+
+func increase_base_energy(amount: int):
+	base_max_energy += amount
+	base_energy_current += amount # Give immediate benefit too
+	print("Base Energy Increased! New Max: %d" % base_max_energy)
+	# We might want a signal here if we had a UI listening for it live, 
+	# but screens usually update on show().
