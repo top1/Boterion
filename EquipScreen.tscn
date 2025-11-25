@@ -74,7 +74,7 @@ offset_top = 194.0
 offset_right = 403.0
 offset_bottom = 226.0
 script = ExtResource("3_mai7p")
-allowed_item_types = Array[String](["TOOLS"])
+allowed_item_types = Array[String](["TOOL"])
 
 [node name="ItemTexture" type="TextureRect" parent="MainLayout/RobotPanel/LeftArm"]
 layout_mode = 2
@@ -88,7 +88,7 @@ offset_top = 193.0
 offset_right = 574.0
 offset_bottom = 225.0
 script = ExtResource("3_mai7p")
-allowed_item_types = Array[String](["TOOLS"])
+allowed_item_types = Array[String](["TOOL"])
 
 [node name="ItemTexture" type="TextureRect" parent="MainLayout/RobotPanel/RightArm"]
 layout_mode = 2

@@ -36,7 +36,12 @@ func show_screen():
 	
 	# Update slider range
 	charge_slider.max_value = RobotState.MAX_ENERGY
+	# FIX: Prevent discharging!
+	charge_slider.min_value = RobotState.current_energy
 	charge_slider.value = RobotState.current_energy
+	
+	# Disable if already full
+	charge_slider.editable = RobotState.current_energy < RobotState.MAX_ENERGY
 	
 	update_robot_stats()
 	_update_charge_info()
@@ -54,6 +59,20 @@ func _update_charge_info():
 
 
 func _on_charge_slider_changed(new_value: float):
+	# Clamp the slider to what is actually affordable/achievable
+	var max_achievable = RobotState.current_energy + RobotState.base_energy_current
+	
+	# FIX: Strict lower bound check
+	if new_value < RobotState.current_energy:
+		charge_slider.value = RobotState.current_energy
+		return
+	
+	if new_value > max_achievable:
+		# Snap back if user tries to drag past limit
+		charge_slider.value = max_achievable
+		# The setter will trigger this signal again, so we return to avoid double update
+		return
+
 	_update_charge_info()
 
 
@@ -115,21 +134,24 @@ func _update_inventory_list():
 	# Populate with current inventory
 	for item in RobotState.inventory:
 		var slot = PanelContainer.new()
-		slot.custom_minimum_size = Vector2(64, 64)
+		slot.custom_minimum_size = Vector2(80, 80)
 		
 		var btn = Button.new()
+		# ATTACH THE SCRIPT!
+		btn.set_script(load("res://Inventory_slot.gd"))
+		# Set the item property, which triggers update_display()
+		btn.item = item
+		
 		# FIX: Use icon if available, otherwise full name with wrap
-		if item.item_texture:
-			btn.icon = item.item_texture
-			btn.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			btn.expand_icon = true
-		else:
-			btn.text = item.item_name # Full name
+		if not item.item_texture:
+			# Only set text if no icon (Inventory_slot handles icon now)
+			var short_name = item.item_name.split("(")[0].strip_edges()
+			btn.text = short_name
 			btn.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 			btn.clip_text = true
 			
-		var desc = item.description if "description" in item else ""
-		btn.tooltip_text = item.item_name + "\n" + desc
+		# var desc = item.description if "description" in item else "" # Handled by script now
+		# btn.tooltip_text = item.item_name + "\n" + desc
 		btn.set_anchors_preset(Control.PRESET_FULL_RECT)
 		btn.pressed.connect(_on_inventory_item_pressed.bind(item))
 		
@@ -179,7 +201,11 @@ func _on_equipment_changed(_item = null):
 	
 	# When equipment changes, update slider range but keep current value
 	charge_slider.max_value = RobotState.MAX_ENERGY
-	charge_slider.value = min(charge_slider.value, RobotState.MAX_ENERGY)
+	# FIX: Update min value too
+	charge_slider.min_value = RobotState.current_energy
+	charge_slider.value = max(charge_slider.value, RobotState.current_energy)
+	
+	charge_slider.editable = RobotState.current_energy < RobotState.MAX_ENERGY
 	
 	update_robot_stats()
 
@@ -191,6 +217,10 @@ func update_robot_stats():
 	
 	# Sync slider max
 	charge_slider.max_value = RobotState.MAX_ENERGY
+	
+	# FIX: Always sync min_value and editable state here to catch all updates (including _ready)
+	charge_slider.min_value = RobotState.current_energy
+	charge_slider.editable = RobotState.current_energy < RobotState.MAX_ENERGY
 	
 	# If the slider is not being dragged (or we just opened the screen), sync its value too?
 	# For now, let's just update the text. The slider value is handled in show_screen and _on_equipment_changed.

@@ -132,10 +132,14 @@ func update_equipment_bonuses(bonus_energy: int, bonus_storage: int):
 func start_new_day(regenerate_map: bool = false):
 	# Only reset base energy, NOT robot energy
 	base_energy_current = base_max_energy
+	
+	# Reset Robot Storage (unloaded at base)
+	current_storage = 0
 
 	print("--- NEW DAY STARTED ---")
 	print("Base Energy reset to: %d / %d" % [base_energy_current, base_max_energy])
 	print("Robot Energy remains: %d / %d" % [current_energy, MAX_ENERGY])
+	print("Robot Storage unloaded: 0 / %d" % MAX_STORAGE)
 
 	# Ensure map exists (but don't clear it unless we want to force regen)
 	initialize_map_if_needed()
@@ -209,18 +213,25 @@ func craft_item(item: Resource):
 		print("Cannot craft item: Insufficient resources")
 
 func charge_robot_from_base(amount_to_charge: int):
-	# Sicherheitsabfrage: Stelle sicher, dass wir genug Basis-Energie haben.
-	if base_energy_current >= amount_to_charge:
-		# Führe die Transaktion durch
-		base_energy_current -= amount_to_charge
-		current_energy += amount_to_charge
-		
-		# Stelle sicher, dass die Roboter-Energie das Maximum nicht überschreitet.
-		current_energy = min(current_energy, MAX_ENERGY)
-		
-		print("Charged robot with %d energy. Cost: %d Base Energy." % [amount_to_charge, amount_to_charge])
-	else:
-		print("ERROR: Not enough base energy to perform charge!")
+	# 1. Calculate how much we actually need and can afford
+	var needed = MAX_ENERGY - current_energy
+	var available = base_energy_current
+	
+	# The actual amount is the smallest of: requested, needed, available
+	var actual_charge = min(amount_to_charge, min(needed, available))
+	
+	if actual_charge <= 0:
+		print("Charge skipped: No energy needed or no base energy available.")
+		return
+
+	# 2. Perform the transaction
+	base_energy_current -= actual_charge
+	current_energy += actual_charge
+	
+	# Double check clamp (redundant but safe)
+	current_energy = min(current_energy, MAX_ENERGY)
+	
+	print("Charged robot with %d energy. Cost: %d Base Energy." % [actual_charge, actual_charge])
 
 func increase_base_energy(amount: int):
 	base_max_energy += amount

@@ -120,9 +120,13 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
 bbcode_enabled = true
 text = "MISSION PLANNER AREA"
-fit_content = true
+fit_content = false
 
 [node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer2"]
 layout_direction = 3
@@ -134,33 +138,33 @@ size_flags_vertical = 4
 unique_name_in_owner = true
 custom_minimum_size = Vector2(100, 25)
 layout_mode = 2
-text = "WORKSHOP (Equip)"
+text = "WORKSHOP"
 
 [node name="toMainframe" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer2/HBoxContainer"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(100, 25)
 layout_mode = 2
-text = "MAINFRAME (Research)"
+text = "MAINFRAME"
 
 [node name="toCrafting" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer2/HBoxContainer"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(100, 25)
 layout_mode = 2
-text = "FABRICATION (Craft)"
+text = "FABRICATION"
 
 [node name="RemoveLastMissionButton" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer2/HBoxContainer"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(100, 25)
 layout_mode = 2
 size_flags_horizontal = 8
-text = "REMOVE LAST ENTRY"
+text = "UNDO"
 
 [node name="ExecutePlanButton" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer2/HBoxContainer"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(100, 25)
 layout_mode = 2
 size_flags_horizontal = 8
-text = "RELEASE THE ROBOT"
+text = "EXECUTE"
 
 [node name="EnergyBar" type="ProgressBar" parent="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer2"]
 unique_name_in_owner = true
@@ -191,6 +195,10 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
 bbcode_enabled = true
 text = "Room Info"
 fit_content = true

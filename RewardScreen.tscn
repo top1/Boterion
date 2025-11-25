@@ -4,29 +4,197 @@
 
 [node name="RewardScreen" type="Control"]
 layout_mode = 3
-anchors_preset = 0
-offset_right = 40.0
-offset_bottom = 40.0
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 script = ExtResource("1_gwfrr")
 
-[node name="CenterContainer" type="CenterContainer" parent="."]
-layout_mode = 0
-offset_right = 40.0
-offset_bottom = 40.0
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.05, 0.05, 0.1, 1)
 
-[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer"]
+[node name="MainLayout" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="HeaderSpacer" type="Control" parent="MainLayout"]
+custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
 
-[node name="Label" type="Label" parent="CenterContainer/VBoxContainer"]
+[node name="TitleLabel" type="Label" parent="MainLayout"]
 layout_mode = 2
-text = "Mission Report"
+theme_override_font_sizes/font_size = 48
+text = "MISSION COMPLETE"
+horizontal_alignment = 1
 
-[node name="LootSummaryLabel" type="Label" parent="CenterContainer/VBoxContainer"]
+[node name="SubTitleLabel" type="Label" parent="MainLayout"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+theme_override_font_sizes/font_size = 24
+text = "Resources Recovered"
+horizontal_alignment = 1
+
+[node name="ResourcesContainer" type="HBoxContainer" parent="MainLayout"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Loot Summary"
+theme_override_constants/separation = 40
+alignment = 1
 
-[node name="ContinueButton" type="Button" parent="CenterContainer/VBoxContainer"]
+[node name="ScrapPanel" type="VBoxContainer" parent="MainLayout/ResourcesContainer"]
+layout_mode = 2
+alignment = 1
+
+[node name="Label" type="Label" parent="MainLayout/ResourcesContainer/ScrapPanel"]
+layout_mode = 2
+text = "SCRAP"
+horizontal_alignment = 1
+
+[node name="ScrapCount" type="Label" parent="MainLayout/ResourcesContainer/ScrapPanel"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Continue"
+theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
+theme_override_font_sizes/font_size = 32
+text = "0"
+horizontal_alignment = 1
+
+[node name="ElecPanel" type="VBoxContainer" parent="MainLayout/ResourcesContainer"]
+layout_mode = 2
+alignment = 1
+
+[node name="Label" type="Label" parent="MainLayout/ResourcesContainer/ElecPanel"]
+layout_mode = 2
+text = "ELECTRONICS"
+horizontal_alignment = 1
+
+[node name="ElecCount" type="Label" parent="MainLayout/ResourcesContainer/ElecPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.8, 1, 1)
+theme_override_font_sizes/font_size = 32
+text = "0"
+horizontal_alignment = 1
+
+[node name="FoodPanel" type="VBoxContainer" parent="MainLayout/ResourcesContainer"]
+layout_mode = 2
+alignment = 1
+
+[node name="Label" type="Label" parent="MainLayout/ResourcesContainer/FoodPanel"]
+layout_mode = 2
+text = "FOOD"
+horizontal_alignment = 1
+
+[node name="FoodCount" type="Label" parent="MainLayout/ResourcesContainer/FoodPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 1, 0.4, 1)
+theme_override_font_sizes/font_size = 32
+text = "0"
+horizontal_alignment = 1
+
+[node name="BlueprintStage" type="Control" parent="MainLayout"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 300)
+layout_mode = 2
+
+[node name="BlueprintLabel" type="Label" parent="MainLayout/BlueprintStage"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 23.0
+grow_horizontal = 2
+text = "Blueprint Detected..."
+horizontal_alignment = 1
+
+[node name="MysteryBox" type="ColorRect" parent="MainLayout/BlueprintStage"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -64.0
+offset_top = -64.0
+offset_right = 64.0
+offset_bottom = 64.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.2, 0.2, 0.2, 1)
+
+[node name="QuestionMark" type="Label" parent="MainLayout/BlueprintStage/MysteryBox"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 64
+text = "?"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="RevealedItemIcon" type="TextureRect" parent="MainLayout/BlueprintStage"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -64.0
+offset_top = -64.0
+offset_right = 64.0
+offset_bottom = 64.0
+grow_horizontal = 2
+grow_vertical = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="RevealedItemName" type="Label" parent="MainLayout/BlueprintStage"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -100.0
+offset_top = -50.0
+offset_right = 100.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_font_sizes/font_size = 24
+text = "ITEM NAME"
+horizontal_alignment = 1
+
+[node name="FooterSpacer" type="Control" parent="MainLayout"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ContinueButton" type="Button" parent="MainLayout"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(200, 60)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 24
+text = "CONTINUE"
+
+[node name="BottomSpacer" type="Control" parent="MainLayout"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2

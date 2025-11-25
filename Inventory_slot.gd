@@ -1,5 +1,5 @@
 # InventorySlot.gd
-extends PanelContainer # Or TextureRect, or Button, etc.
+extends Control # Supports both PanelContainer and Button
 
 @export var item: Item = null:
 	set(value):
@@ -14,16 +14,30 @@ func _ready():
 
 func update_display():
 	# Update the TextureRect's texture and potentially a label for the item name
-	if item:
-		$ItemTexture.texture = item.item_texture
-		$ItemTexture.visible = true
+	# Use is_class to avoid static type error since this script extends Control
+	if self.is_class("Button"):
+		if item:
+			self.set("icon", item.item_texture)
+			self.set("icon_alignment", HORIZONTAL_ALIGNMENT_CENTER)
+			self.set("expand_icon", true)
+			# Optional: Tooltip
+			var desc = item.description if "description" in item else ""
+			self.tooltip_text = item.item_name + "\n" + desc
+		else:
+			self.set("icon", null)
 	else:
-		$ItemTexture.texture = null
-		$ItemTexture.visible = false
+		# Fallback for PanelContainer usage
+		if has_node("ItemTexture"):
+			if item:
+				$ItemTexture.texture = item.item_texture
+				$ItemTexture.visible = true
+			else:
+				$ItemTexture.texture = null
+				$ItemTexture.visible = false
 
 # In InventorySlot.gd
 
-func _get_drag_data(at_position: Vector2) -> Variant:
+func _get_drag_data(_at_position: Vector2) -> Variant:
 	if item == null:
 		return null
 
@@ -44,22 +58,30 @@ func _get_drag_data(at_position: Vector2) -> Variant:
 	drag_preview_wrapper.add_child(drag_preview_texture)
 	
 	# Set the texture's position so it's centered on the mouse
-	drag_preview_texture.position = -drag_preview_texture.custom_minimum_size / 2
+	drag_preview_texture.position = - drag_preview_texture.custom_minimum_size / 2
 	
 	# Set the wrapper as the preview
 	set_drag_preview(drag_preview_wrapper)
 	# --- END FIX ---
 
 	# Temporarily hide the item in the original slot
-	$ItemTexture.visible = false
+	if self.is_class("Button"):
+		self.set("icon", null)
+	elif has_node("ItemTexture"):
+		$ItemTexture.visible = false
 
 	return drag_data
+
+func _notification(what):
+	if what == NOTIFICATION_DRAG_END:
+		# Restore visibility / update display based on current state
+		update_display()
 	
-func _can_drop_data(at_position: Vector2, data: Variant) -> bool:
+func _can_drop_data(_at_position: Vector2, data: Variant) -> bool:
 	# An inventory slot can accept any item.
 	return data is Dictionary and data.has("type") and data["type"] == "inventory_item"
 
-func _drop_data(at_position: Vector2, data: Variant):
+func _drop_data(_at_position: Vector2, data: Variant):
 	var new_item: Item = data["item_resource"]
 	var source_slot = data["source_slot"]
 	

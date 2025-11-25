@@ -181,7 +181,8 @@ func _on_room_selected(room_data: RoomData, room_node: Button = null):
 		return
 
 	# ZUSTAND B: "OPEN" IST GEPLANT ODER SCHON OFFEN -> ZEIGE DIE LOOT/SCAVENGE-ANSICHT
-	elif is_open_or_planned:
+	# FIX: Factories should NOT enter this block, so they fall through to the Factory Logic below.
+	elif is_open_or_planned and room_data.type != RoomData.RoomType.FACTORY:
 		# --- B.1: VORBERECHNUNGEN ---
 		var max_energy_on_site = get_max_available_energy_for_action(room_data.distance)
 		var max_investable_energy = min(max_energy_on_site, RobotState.MAX_STORAGE - RobotState.current_storage)
@@ -197,20 +198,26 @@ func _on_room_selected(room_data: RoomData, room_node: Button = null):
 		if room_data.is_completely_empty():
 			info_text = "ROOM %s - ACTION PLANNING\n" % room_data.room_id
 			info_text += "--------------------\n"
-			info_text += "ROOM IS COMPLETELY EMPTY."
+			info_text += "[color=#ff0000][b]ROOM IS COMPLETELY EMPTY[/b][/color]"
 			
 			loot_action_container.hide()
 			action_buttons_container.show()
 			scan_button.hide(); open_button.hide(); loot_button.show(); scavenge_button.show()
+			repair_button.hide() # FIX: Ensure repair button is hidden!
 			loot_button.disabled = true
 			scavenge_button.disabled = true
+			loot_button.text = "LOOT (EMPTY)"
+			scavenge_button.text = "SCAVENGE (EMPTY)"
 		else:
+			# Reset button text
+			loot_button.text = "LOOT"
+			scavenge_button.text = "SCAVENGE"
+			
 			var max_e_theo = max_investable_energy / RobotState.ENERGY_PER_ELECTRONIC
 			var max_s_theo = max_investable_energy / RobotState.ENERGY_PER_SCRAP
 			var max_b_theo = max_investable_energy / RobotState.ENERGY_PER_BLUEPRINT
 			var max_f_theo = max_investable_energy / RobotState.ENERGY_PER_FOOD
 
-			# GEÄNDERT: Hier ist die Korrektur für die Beschriftung!
 			if room_data.is_scanned:
 				max_e_theo = min(max_e_theo, room_data.loot_pool["electronics"]["current"])
 				max_s_theo = min(max_s_theo, room_data.loot_pool["scrap_metal"]["current"])
@@ -227,7 +234,6 @@ func _on_room_selected(room_data: RoomData, room_node: Button = null):
 
 			# UI Konfiguration
 			loot_slider.max_value = max_investable_energy
-			# ... (der Rest der Funktion bleibt unverändert) ...
 			loot_slider.min_value = 0
 			loot_slider.value = 0
 			_on_loot_slider_changed(0)
@@ -241,10 +247,12 @@ func _on_room_selected(room_data: RoomData, room_node: Button = null):
 			
 			if room_data.is_scavenge_empty():
 				scavenge_button.disabled = true
-				info_text += "\n\nScavenge resources depleted."
+				scavenge_button.text = "SCAVENGE (EMPTY)"
+				info_text += "\n\n[color=#ff0000]Scavenge resources depleted.[/color]"
 			if room_data.is_loot_empty():
 				loot_button.disabled = true
-				info_text += "\n\nLoot items depleted."
+				loot_button.text = "LOOT (EMPTY)"
+				info_text += "\n\n[color=#ff0000]Loot items depleted.[/color]"
 
 			match room_data.looting_state:
 				RoomData.LootingState.LOOTING:
@@ -255,6 +263,13 @@ func _on_room_selected(room_data: RoomData, room_node: Button = null):
 					loot_button.disabled = true
 					if not room_data.is_loot_empty():
 						info_text += "\n\nScavenging in progress. Looting locked."
+			
+			# --- WARNINGS FOR LIMITS ---
+			if max_investable_energy == 0:
+				if RobotState.MAX_STORAGE - RobotState.current_storage <= 0:
+					info_text += "\n\n[color=#ff0000][b]INVENTORY FULL! Return to base to unload.[/b][/color]"
+				elif max_energy_on_site <= 0:
+					info_text += "\n\n[color=#ff0000][b]INSUFFICIENT ENERGY![/b][/color]"
 		
 		room_info_label.text = info_text
 		if debug_inspector_panel.visible:
@@ -294,18 +309,25 @@ func _on_room_selected(room_data: RoomData, room_node: Button = null):
 					
 				else:
 					info_text += "Status: [color=#ff0000]OFFLINE[/color]\n"
-					info_text += "Can be repaired to boost Base Energy.\n"
-					info_text += "Repair Cost: [color=#ff5555]50 Energy[/color]"
+					info_text += "Can be repaired to boost Base Energy (+50).\n"
+					info_text += "Repair Cost: [color=#ff5555]50 Energy[/color]\n"
+					info_text += "Resources: [color=#aaaaaa]50 Scrap[/color], [color=#00ffff]20 Electronics[/color]"
 					
 					var can_repair = false
 					if not is_action_planned_for_room(room_data.room_id, "REPAIR"):
 						var total_repair_cost = travel_cost + 50 + (room_data.distance * RobotState.MOVE_COST_PER_UNIT)
+						# Check Energy AND Resources
 						if planned_remaining_energy >= total_repair_cost:
-							can_repair = true
+							if RobotState.scrap >= 50 and RobotState.electronics >= 20:
+								can_repair = true
+							else:
+								info_text += "\n[color=#ff0000]INSUFFICIENT RESOURCES[/color]"
 					
 					action_buttons_container.show()
 					scan_button.hide(); open_button.hide(); loot_button.hide(); scavenge_button.hide()
-					repair_button.visible = can_repair
+					repair_button.visible = true # Always visible so we can see the button
+					repair_button.disabled = not can_repair # But disabled if not affordable
+					repair_button.text = "REPAIR (50E, 50S, 20E)"
 		# --- END FACTORY LOGIC ---
 		else:
 			# Standard logic for non-factory OR unscanned factory
@@ -350,13 +372,18 @@ func _on_scan_pressed():
 	var action_cost = RobotState.SCAN_COST
 	var total_cost = travel_cost + action_cost
 	
-	if planned_remaining_energy >= total_cost:
+	# FIX: Ensure we can return home!
+	var new_return_cost = current_selected_room.distance * RobotState.MOVE_COST_PER_UNIT
+	
+	if planned_remaining_energy >= total_cost + new_return_cost:
 		var mission = {
 			"type": "SCAN", "room_id": current_selected_room.room_id,
 			"cost": total_cost, "target_room": current_selected_room,
 			"travel_cost": travel_cost, "action_cost": action_cost
 		}
 		add_mission_to_plan(mission)
+	else:
+		print("Cannot plan SCAN: Insufficient energy for action + return trip.")
 
 
 func _on_open_pressed():
@@ -365,27 +392,42 @@ func _on_open_pressed():
 	var action_cost = current_selected_room.door_strength
 	var total_cost = travel_cost + action_cost
 	
-	if planned_remaining_energy >= total_cost:
+	# FIX: Ensure we can return home!
+	var new_return_cost = current_selected_room.distance * RobotState.MOVE_COST_PER_UNIT
+	
+	if planned_remaining_energy >= total_cost + new_return_cost:
 		var mission = {
 			"type": "OPEN", "room_id": current_selected_room.room_id,
 			"cost": total_cost, "target_room": current_selected_room,
 			"travel_cost": travel_cost, "action_cost": action_cost
 		}
 		add_mission_to_plan(mission)
+	else:
+		print("Cannot plan OPEN: Insufficient energy for action + return trip.")
 
 func _on_repair_pressed():
 	if not current_selected_room: return
+	
+	# FIX: Validate resources and state before planning
+	if current_selected_room.is_repaired: return
+	if RobotState.scrap < 50 or RobotState.electronics < 20: return
+	
 	var travel_cost = abs(current_selected_room.distance - last_position_in_plan) * RobotState.MOVE_COST_PER_UNIT
 	var action_cost = 50 # Fixed cost
 	var total_cost = travel_cost + action_cost
 	
-	if planned_remaining_energy >= total_cost:
+	# FIX: Ensure we can return home!
+	var new_return_cost = current_selected_room.distance * RobotState.MOVE_COST_PER_UNIT
+	
+	if planned_remaining_energy >= total_cost + new_return_cost:
 		var mission = {
 			"type": "REPAIR", "room_id": current_selected_room.room_id,
 			"cost": total_cost, "target_room": current_selected_room,
 			"travel_cost": travel_cost, "action_cost": action_cost
 		}
 		add_mission_to_plan(mission)
+	else:
+		print("Cannot plan REPAIR: Insufficient energy for action + return trip.")
 
 func add_mission_to_plan(mission: Dictionary):
 	mission_plan.append(mission)
@@ -417,7 +459,7 @@ func add_mission_to_plan(mission: Dictionary):
 func update_mission_plan_display():
 	# --- 1. SETUP ---
 	# ADDED PADDING SPACE TO FIX MARGIN ISSUE
-	var display_text = " [color=#ffffff][b]Mission Plan:[/b][/color]\n"
+	var display_text = "[color=#ffffff][b]Mission Plan:[/b][/color]\n"
 	display_text += " [color=#555555]--------------------[/color]\n"
 	
 	# --- 2. MISSIONEN AUFLISTEN MIT ALLEN DETAILS ---
@@ -522,7 +564,17 @@ func _on_remove_last_mission():
 func _on_loot_pressed():
 	if not current_selected_room: return
 	var energy_commitment = int(loot_slider.value)
-	if planned_remaining_energy < energy_commitment: return
+	
+	# FIX: Calculate Travel Cost!
+	var travel_cost = abs(current_selected_room.distance - last_position_in_plan) * RobotState.MOVE_COST_PER_UNIT
+	var total_cost = travel_cost + energy_commitment
+	
+	# FIX: Ensure we can return home!
+	var new_return_cost = current_selected_room.distance * RobotState.MOVE_COST_PER_UNIT
+	
+	if planned_remaining_energy < total_cost + new_return_cost:
+		print("Cannot plan LOOT: Insufficient energy for travel + action + return trip.")
+		return
 		
 	# --- NEU: Potenzielle Beute berechnen ---
 	var potential_loot_dict = {}
@@ -540,16 +592,28 @@ func _on_loot_pressed():
 	var mission = {
 		"type": "LOOT",
 		"room_id": current_selected_room.room_id,
-		"cost": energy_commitment,
+		"cost": total_cost, # Includes travel now!
 		"target_room": current_selected_room,
-		"potential_loot": potential_loot_dict # <-- NEUER EINTRAG
+		"travel_cost": travel_cost,
+		"action_cost": energy_commitment,
+		"potential_loot": potential_loot_dict
 	}
 	add_mission_to_plan(mission)
 
 func _on_scavenge_pressed():
 	if not current_selected_room: return
 	var energy_commitment = int(loot_slider.value)
-	if planned_remaining_energy < energy_commitment: return
+	
+	# FIX: Calculate Travel Cost!
+	var travel_cost = abs(current_selected_room.distance - last_position_in_plan) * RobotState.MOVE_COST_PER_UNIT
+	var total_cost = travel_cost + energy_commitment
+	
+	# FIX: Ensure we can return home!
+	var new_return_cost = current_selected_room.distance * RobotState.MOVE_COST_PER_UNIT
+	
+	if planned_remaining_energy < total_cost + new_return_cost:
+		print("Cannot plan SCAVENGE: Insufficient energy for travel + action + return trip.")
+		return
 		
 	# --- NEU: Potenzielle Beute berechnen ---
 	var potential_loot_dict = {}
@@ -567,9 +631,11 @@ func _on_scavenge_pressed():
 	var mission = {
 		"type": "SCAVENGE",
 		"room_id": current_selected_room.room_id,
-		"cost": energy_commitment,
+		"cost": total_cost, # Includes travel now!
 		"target_room": current_selected_room,
-		"potential_loot": potential_loot_dict # <-- NEUER EINTRAG
+		"travel_cost": travel_cost,
+		"action_cost": energy_commitment,
+		"potential_loot": potential_loot_dict
 	}
 	add_mission_to_plan(mission)
 
@@ -607,14 +673,17 @@ func _on_loot_slider_changed(value: float):
 	loot_energy_label.text = preview_text
 	
 func get_max_available_energy_for_action(target_room_distance: int) -> int:
-	# 1. Berechne die Kosten für den direkten Rückweg vom Ziel zum Control Room (Distanz 0)
+	# 1. Berechne die Kosten für den Hinweg von der letzten geplanten Position
+	var travel_cost = abs(target_room_distance - last_position_in_plan) * RobotState.MOVE_COST_PER_UNIT
+	
+	# 2. Berechne die Kosten für den direkten Rückweg vom Ziel zum Control Room (Distanz 0)
 	var return_cost = target_room_distance * RobotState.MOVE_COST_PER_UNIT
 	
-	# 2. Berechne, wie viel Energie nach dem Rückweg noch übrig wäre
-	var energy_after_return = planned_remaining_energy - return_cost
+	# 3. Berechne, wie viel Energie nach Hin- und Rückweg noch übrig wäre
+	var energy_after_travel_and_return = planned_remaining_energy - travel_cost - return_cost
 	
-	# 3. Gib diesen Wert zurück. Wenn er negativ ist, gib 0 zurück (clamp).
-	return max(0, energy_after_return)
+	# 4. Gib diesen Wert zurück. Wenn er negativ ist, gib 0 zurück (clamp).
+	return max(0, energy_after_travel_and_return)
 	
 func get_final_return_cost() -> int:
 	# Wenn der Plan leer ist, gibt es keine Rückweg-Kosten.
@@ -692,9 +761,24 @@ func _on_execute_plan_pressed():
 				print("Door to room %s opened." % room.room_id)
 				
 			"REPAIR":
+				# FIX: Prevent infinite repair and resource cheating
+				if room.is_repaired:
+					print("Room %s is already repaired. Skipping." % room.room_id)
+					continue # Skip this mission
+					
+				if RobotState.scrap < 50 or RobotState.electronics < 20:
+					print("Insufficient resources to repair Room %s. Skipping." % room.room_id)
+					continue # Skip this mission
+
 				room.is_repaired = true
-				RobotState.increase_base_energy(10)
-				print("Factory in room %s repaired. Base Energy Increased." % room.room_id)
+				
+				# Deduct Resources
+				RobotState.scrap -= 50
+				RobotState.electronics -= 20
+				RobotState.emit_signal("resources_changed")
+				
+				RobotState.increase_base_energy(50)
+				print("Factory in room %s repaired. Base Energy Increased by 50." % room.room_id)
 				
 			"SCAVENGE":
 				# --- ACCIDENTAL DESTRUCTION LOGIC ---
@@ -718,9 +802,16 @@ func _on_execute_plan_pressed():
 				room.loot_pool.electronics.current -= scavenged_e
 				room.loot_pool.scrap_metal.current -= scavenged_s
 				
-				var unused_energy = energy_planned - energy_actually_spent
-				if unused_energy > 0:
-					collected_loot["energy_refund"] = collected_loot.get("energy_refund", 0) + unused_energy
+				# var unused_energy = energy_planned - energy_actually_spent # Unused
+
+				# FIX: The travel cost is NOT refundable! Only the action cost part.
+				var travel_cost = mission.get("travel_cost", 0)
+				var action_budget = energy_planned - travel_cost
+				
+				var unused_action_energy = action_budget - energy_actually_spent
+
+				if unused_action_energy > 0:
+					collected_loot["energy_refund"] = collected_loot.get("energy_refund", 0) + unused_action_energy
 				
 			"LOOT":
 				# --- ACCIDENTAL DESTRUCTION LOGIC ---
@@ -744,9 +835,16 @@ func _on_execute_plan_pressed():
 				room.loot_pool.blueprints.current -= looted_b
 				room.loot_pool.food.current -= looted_f
 				
-				var unused_energy = energy_planned - energy_actually_spent
-				if unused_energy > 0:
-					collected_loot["energy_refund"] = collected_loot.get("energy_refund", 0) + unused_energy
+				# var unused_energy = energy_planned - energy_actually_spent # Unused
+				
+				# FIX: The travel cost is NOT refundable! Only the action cost part.
+				var travel_cost = mission.get("travel_cost", 0)
+				var action_budget = energy_planned - travel_cost
+				
+				var unused_action_energy = action_budget - energy_actually_spent
+
+				if unused_action_energy > 0:
+					collected_loot["energy_refund"] = collected_loot.get("energy_refund", 0) + unused_action_energy
 
 	# --- FINALE BERECHNUNGEN & ZUSTANDS-UPDATES ---
 	

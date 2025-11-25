@@ -58,11 +58,26 @@ func _drop_data(at_position: Vector2, data: Variant):
 		if source_slot is EquipSlot:
 			source_slot.current_equipped_item = self.current_equipped_item
 		else:
-			source_slot.item = self.current_equipped_item
+			# The source was an INVENTORY slot.
+			# 1. Remove the new item from the global inventory list
+			RobotState.inventory.erase(new_item)
+			
+			# 2. If we are swapping (we have an item), add our old item to the global inventory
+			if self.current_equipped_item:
+				RobotState.inventory.append(self.current_equipped_item)
+			
+			# 3. Notify everyone that inventory changed (this will refresh the inventory grid)
+			RobotState.emit_signal("inventory_changed")
+			
+			# We don't need to manually update source_slot.item because the signal 
+			# will cause the entire grid to rebuild.
 		
 		self.current_equipped_item = new_item
 		
-		source_slot.update_display()
+		# source_slot.update_display() # Redundant if rebuilding inventory, but harmless for EquipSlot swap
+		if source_slot is EquipSlot:
+			source_slot.update_display()
+			
 		self.update_display()
 		
 		# Now that main_screen is correctly found, this will work.
@@ -90,13 +105,28 @@ func _get_drag_data(at_position: Vector2) -> Variant:
 	drag_preview_texture.position = - drag_preview_texture.custom_minimum_size / 2
 	set_drag_preview(drag_preview_wrapper)
 	
-	self.current_equipped_item = null
+	# Don't clear the item data yet! Just hide the visual.
+	# The target slot will handle clearing/swapping the data in _drop_data.
+	# If the drag is cancelled, NOTIFICATION_DRAG_END will restore visibility.
+	var texture_rect = $ItemTexture
+	if texture_rect:
+		texture_rect.visible = false
+	
+	# self.current_equipped_item = null # REMOVED: Caused item loss on cancel
 	
 	# And this will now work too.
 	if main_screen:
 		main_screen.update_robot_stats()
 
 	return drag_data
+
+func _notification(what):
+	if what == NOTIFICATION_DRAG_END:
+		# When drag ends (successful or not), we refresh our display.
+		# If successful, _drop_data in the target has already updated our 'current_equipped_item'.
+		# If failed, 'current_equipped_item' is untouched.
+		# In both cases, update_display() shows the correct state.
+		update_display()
 
 # --- NEW METHODS FOR CLICK-EQUIP SUPPORT ---
 
@@ -113,5 +143,23 @@ func equip_item(item: Item):
 	update_display()
 	
 	# Update stats
+	# Update stats
 	if main_screen:
 		main_screen.update_robot_stats()
+
+func _gui_input(event: InputEvent):
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		if current_equipped_item:
+			# Unequip!
+			var item_to_remove = current_equipped_item
+			self.current_equipped_item = null
+			
+			# Return to inventory
+			RobotState.inventory.append(item_to_remove)
+			RobotState.emit_signal("inventory_changed")
+			
+			# Update stats
+			if main_screen:
+				main_screen.update_robot_stats()
+			
+			get_viewport().set_input_as_handled()
