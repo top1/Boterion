@@ -490,7 +490,12 @@ func update_mission_plan_display():
 		display_text += " [color=#555555]--------------------[/color]\n"
 		display_text += " > Return to Base (Cost: [color=#ff5555]%d[/color])\n" % final_return_cost
 	
-	var total_actions_cost = RobotState.MAX_ENERGY - planned_remaining_energy
+	# FIX: Calculate total cost by summing missions, NOT by comparing to MAX_ENERGY
+	# This prevents "ghost costs" when starting with partial energy.
+	var total_actions_cost = 0
+	for mission in mission_plan:
+		total_actions_cost += mission.cost
+		
 	var total_cost_with_return = total_actions_cost + final_return_cost
 	
 	display_text += " [color=#555555]--------------------[/color]\n"
@@ -827,9 +832,21 @@ func _on_execute_plan_pressed():
 				var looted_f = min(room.loot_pool.food.current, energy_planned / RobotState.ENERGY_PER_FOOD)
 				
 				energy_actually_spent += looted_b * RobotState.ENERGY_PER_BLUEPRINT
+				energy_actually_spent += looted_b * RobotState.ENERGY_PER_BLUEPRINT
 				energy_actually_spent += looted_f * RobotState.ENERGY_PER_FOOD
 				
-				collected_loot["blueprints"] = collected_loot.get("blueprints", 0) + looted_b
+				# collected_loot["blueprints"] = collected_loot.get("blueprints", 0) + looted_b # OLD INT LOGIC
+				
+				# NEW LOGIC: Generate actual blueprint items
+				if looted_b > 0:
+					if not collected_loot.has("blueprints"):
+						collected_loot["blueprints"] = []
+					
+					for i in range(looted_b):
+						var bp = RobotState.get_random_blueprint()
+						if bp:
+							collected_loot["blueprints"].append(bp)
+				
 				collected_loot["food"] = collected_loot.get("food", 0) + looted_f
 				
 				room.loot_pool.blueprints.current -= looted_b
@@ -899,7 +916,12 @@ func _on_execute_plan_pressed():
 	# 4. Füge die gesammelte Beute zum globalen Lager hinzu
 	var total_items_collected = 0
 	for item_name in collected_loot:
-		total_items_collected += collected_loot[item_name]
+		var val = collected_loot[item_name]
+		if val is int or val is float:
+			total_items_collected += int(val)
+		elif val is Array:
+			total_items_collected += val.size()
+			
 	RobotState.current_storage += total_items_collected
 
 	# 5. Bereite den nächsten Tag vor

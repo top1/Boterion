@@ -34,16 +34,12 @@ func show_screen():
 	var bonuses = _calculate_equipment_bonuses()
 	RobotState.update_equipment_bonuses(bonuses.energy, bonuses.storage)
 	
-	# Update slider range
-	charge_slider.max_value = RobotState.MAX_ENERGY
-	# FIX: Prevent discharging!
-	charge_slider.min_value = RobotState.current_energy
-	charge_slider.value = RobotState.current_energy
+	# CENTRALIZED UPDATE: Delegate all UI updates to update_robot_stats
+	# We removed the manual slider setting here to avoid conflicts.
 	
-	# Disable if already full
-	charge_slider.editable = RobotState.current_energy < RobotState.MAX_ENERGY
-	
+	# FIX: Ensure we update stats to set initial slider state correctly
 	update_robot_stats()
+	
 	_update_charge_info()
 	_update_inventory_list()
 
@@ -199,30 +195,45 @@ func _on_equipment_changed(_item = null):
 		# Clamp just in case, though logic implies it's safe
 		RobotState.current_energy = min(RobotState.current_energy, RobotState.MAX_ENERGY)
 	
-	# When equipment changes, update slider range but keep current value
-	charge_slider.max_value = RobotState.MAX_ENERGY
-	# FIX: Update min value too
-	charge_slider.min_value = RobotState.current_energy
-	charge_slider.value = max(charge_slider.value, RobotState.current_energy)
-	
-	charge_slider.editable = RobotState.current_energy < RobotState.MAX_ENERGY
-	
+	# CENTRALIZED UPDATE: We do NOT touch the slider here anymore.
+	# We delegate everything to update_robot_stats() to avoid conflicting logic.
 	update_robot_stats()
 
 func update_robot_stats():
 	# 1. Update der Stat-Labels (die neue Übersicht)
-	# Use colors to distinguish (using modulate since these are standard Labels)
 	base_energy_label.text = "BASE ENERGY (HOME): %d / %d" % [RobotState.base_energy_current, RobotState.base_max_energy]
 	base_energy_label.modulate = Color(0, 1, 1) # Cyan
 	
-	# Sync slider max
+	# 2. CENTRALIZED SLIDER LOGIC
+	# This function is now the ONLY place that sets slider properties (except for user drag).
+	
+	# A. Set Range
 	charge_slider.max_value = RobotState.MAX_ENERGY
-	
-	# FIX: Always sync min_value and editable state here to catch all updates (including _ready)
 	charge_slider.min_value = RobotState.current_energy
-	charge_slider.editable = RobotState.current_energy < RobotState.MAX_ENERGY
 	
-	# If the slider is not being dragged (or we just opened the screen), sync its value too?
-	# For now, let's just update the text. The slider value is handled in show_screen and _on_equipment_changed.
+	# B. Determine Editable State
+	# Condition 1: Robot needs charge (Current < Max)
+	# Condition 2: Base has energy (Base > 0)
+	var needs_charge = RobotState.current_energy < RobotState.MAX_ENERGY
+	var can_afford = RobotState.base_energy_current > 0
+	
+	charge_slider.editable = needs_charge and can_afford
+	
+	# C. Clamp Value
+	# Ensure the slider value is at least the current energy (it can be higher if user dragged it)
+	# But if we just opened the screen or updated stats, we generally want it to start at current.
+	# However, if the user is dragging, we don't want to reset it constantly.
+	# For now, let's enforce the lower bound.
+	if charge_slider.value < RobotState.current_energy:
+		charge_slider.value = RobotState.current_energy
+		
+	# D. Debug Prints (to help user understand "locked" state)
+	if not charge_slider.editable:
+		if not needs_charge:
+			print("DEBUG: Slider Locked - Robot is Full (%d/%d)" % [RobotState.current_energy, RobotState.MAX_ENERGY])
+		elif not can_afford:
+			print("DEBUG: Slider Locked - Base Empty (%d)" % RobotState.base_energy_current)
+	
+	# 3. Update Robot Label
 	robot_energy_label.text = "ROBOT BATTERY (RUN): %d / %d" % [RobotState.current_energy, RobotState.MAX_ENERGY]
 	robot_energy_label.modulate = Color(0, 1, 0) # Green

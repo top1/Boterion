@@ -99,6 +99,40 @@ func _debug_add_test_items():
 
 	# We do NOT charge here anymore. We wait for the equipment to be loaded.
 
+var all_items_cache: Array[Item] = []
+
+func get_random_blueprint() -> Item:
+	if all_items_cache.is_empty():
+		# Load all items from the list above if not already done
+		var items_to_load = [
+			"res://items/solar_panel.tres",
+			"res://items/quantum_storage.tres",
+			"res://items/heavy_duty_frame.tres",
+			"res://items/overclocked_core.tres",
+			"res://items/capacitor_bank.tres",
+			"res://items/potato_battery.tres",
+			"res://items/duct_tape_pouch.tres",
+			"res://items/rusty_antenna.tres",
+			"res://items/cardboard_box.tres",
+			"res://items/lithium_ion_cell.tres",
+			"res://items/cargo_net.tres",
+			"res://items/swiss_army_bot_tool.tres",
+			"res://items/mini_fusion_reactor.tres",
+			"res://items/expanded_cargo_pod.tres",
+			"res://items/zero_point_module.tres",
+			"res://items/black_hole_pocket.tres"
+		]
+		for path in items_to_load:
+			if ResourceLoader.exists(path):
+				var item = load(path)
+				if item:
+					all_items_cache.append(item)
+	
+	if all_items_cache.is_empty():
+		return null
+		
+	return all_items_cache.pick_random()
+
 func ensure_initial_full_charge():
 	if not _has_initialized_full_charge:
 		print("--- ROBOTSTATE: Performing INITIAL FULL CHARGE (incl. equipment) ---")

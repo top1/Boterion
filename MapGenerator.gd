@@ -84,7 +84,8 @@ func _generate_row(id_prefix: String) -> Array[RoomData]:
 		new_room.room_id = "%s%d" % [id_prefix, room_counter]
 		
 		# Generiere zufällige Türstärke
-		new_room.door_strength = rng.randi_range(10, new_room.size * 42)
+		# FIX: Cap door strength at 100 as requested
+		new_room.door_strength = min(100, rng.randi_range(10, new_room.size * 42))
 
 		# Generiere zufällige Beute für jede Ressource
 		var electronics_amount = rng.randi_range(10, new_room.size * 21)
