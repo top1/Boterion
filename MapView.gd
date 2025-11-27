@@ -32,6 +32,7 @@ const RoomBlockScene = preload("res://RoomBlock.tscn")
 @onready var to_crafting_button = %toCrafting
 
 var planned_remaining_energy: int = 0
+var initial_planning_energy: int = 0
 var mission_plan: Array[Dictionary] = []
 var last_position_in_plan: int = 0
 # Eine Instanz unseres Generators.
@@ -709,6 +710,7 @@ func show_screen():
 	if mission_plan.is_empty():
 		# Hole den frischesten Energiewert vom RobotState.
 		planned_remaining_energy = RobotState.current_energy
+		initial_planning_energy = RobotState.current_energy
 		
 		# KORREKTUR: Setze die Position des Roboters zurück zur Basis!
 		last_position_in_plan = 0
@@ -760,6 +762,16 @@ func _on_execute_plan_pressed():
 			"SCAN":
 				room.is_scanned = true
 				print("Room %s is now scanned." % room.room_id)
+				
+				# Add to collected loot for Reward Screen
+				if not collected_loot.has("scanned_rooms"):
+					collected_loot["scanned_rooms"] = []
+				collected_loot["scanned_rooms"].append(room)
+				
+				# Trigger Animation
+				var block = find_room_block(room.room_id)
+				if block and block.has_method("play_scan_animation"):
+					block.play_scan_animation()
 				
 			"OPEN":
 				room.is_door_open = true
@@ -906,7 +918,7 @@ func _on_execute_plan_pressed():
 		#collected_loot.erase("energy_refund")
 
 	# 3. Berechne die finalen Energiekosten und aktualisiere den Roboter
-	var total_actions_cost = RobotState.MAX_ENERGY - planned_remaining_energy
+	var total_actions_cost = initial_planning_energy - planned_remaining_energy
 	var return_cost = get_final_return_cost()
 
 	# Wende zuerst den Refund an, dann ziehe die Kosten ab.
@@ -947,6 +959,28 @@ func _unhandled_input(event: InputEvent):
 		# Wenn das Panel jetzt sichtbar ist, aktualisiere die Daten
 		if debug_inspector_panel.visible:
 			update_debug_inspector()
+			
+	# --- DEBUG CHEAT: F8 to test Reward Screen ---
+	if event is InputEventKey and event.pressed and event.keycode == KEY_F8:
+		print("DEBUG: Triggering Fake Reward Screen")
+		var screen_manager = get_tree().get_first_node_in_group("ScreenManager")
+		if screen_manager:
+			var reward_screen = screen_manager.get_node("RewardScreen")
+			if reward_screen:
+				# Create a fake legendary item
+				var fake_item = load("res://items/mini_fusion_reactor.tres") # Assuming this exists and is legendary
+				if not fake_item:
+					# Fallback if specific item not found
+					fake_item = RobotState.all_items_cache.pick_random()
+				
+				var fake_loot = {
+					"scrap_metal": 123,
+					"electronics": 45,
+					"food": 12,
+					"blueprints": [fake_item]
+				}
+				reward_screen.show_rewards(fake_loot)
+				screen_manager.show_screen("reward")
 
 # Diese Funktion füllt das Debug-Panel mit den Daten des aktuell gewählten Raumes
 func update_debug_inspector():
@@ -1002,3 +1036,13 @@ func _on_to_crafting_pressed() -> void:
 		var screen_manager = get_tree().get_first_node_in_group("ScreenManager")
 		if screen_manager:
 			screen_manager.show_screen("crafting")
+
+func find_room_block(room_id: String) -> Node:
+	var all_containers = top_row_container.get_children() + bottom_row_container.get_children()
+	for placeholder in all_containers:
+		# Placeholder is CenterContainer, child is RoomBlock
+		if placeholder.get_child_count() > 0:
+			var block = placeholder.get_child(0)
+			if block.get("room_data") and block.room_data.room_id == room_id:
+				return block
+	return null

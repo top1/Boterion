@@ -37,11 +37,26 @@ func _on_pressed():
 
 # Diese Funktion kümmert sich um die gesamte visuelle Darstellung.
 func _update_display():
-	
 	# 2. Aktualisiere die Textur
 	if room_data.is_scanned:
 		# Wenn der Raum gescannt ist, suche die richtige Textur aus dem Dictionary
 		room_texture_rect.texture = ROOM_TEXTURES.get(room_data.type, ROOM_TEXTURES[RoomData.RoomType.STANDARD])
 	else:
 		# Wenn nicht, benutze die "undiscovered" Textur
+		# Wenn nicht, benutze die "undiscovered" Textur
 		room_texture_rect.texture = UNDISCOVERED_TEXTURE
+
+func play_scan_animation():
+	# 1. Start setup: Ensure we are still showing the "unknown" state or just start the effect
+	var tween = create_tween()
+	
+	# 2. Animation: Scale up and flash
+	tween.tween_property(self, "scale", Vector2(1.2, 1.2), 0.2).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tween.parallel().tween_property(self, "modulate", Color(2, 2, 2), 0.2) # Flash bright
+	
+	# 3. Mid-point: Switch texture (Data should be updated by now)
+	tween.tween_callback(_update_display)
+	
+	# 4. Animation: Scale back and normalize color
+	tween.tween_property(self, "scale", Vector2(1.0, 1.0), 0.3).set_trans(Tween.TRANS_BOUNCE).set_ease(Tween.EASE_OUT)
+	tween.parallel().tween_property(self, "modulate", Color(1, 1, 1), 0.3)
