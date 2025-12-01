@@ -3,6 +3,9 @@ extends Node
 
 signal energy_changed(new_max_energy)
 
+# Explicitly preload to avoid class_name parsing issues in Autoloads
+const Artifact = preload("res://Artifact.gd")
+
 # --- KARTEN-VERWALTUNG ---
 var map_data: Dictionary = {}
 const MapGenerator = preload("res://MapGenerator.gd")
@@ -46,6 +49,11 @@ var known_blueprints: Array[Resource] = [] # Array of Item resources (unlocked r
 # Daily Research Logic
 var daily_research_cost: int = 0
 var daily_research_options: Array[Resource] = []
+
+# --- ARTIFACTS ---
+const MAX_ARTIFACT_SLOTS: int = 4
+var active_artifacts: Array = []
+signal artifacts_changed
 
 # --- SIGNALS ---
 signal resources_changed
@@ -180,17 +188,24 @@ func start_new_day(regenerate_map: bool = false):
 	
 	generate_daily_research_offer()
 func calculate_path_cost(target_room_distance: int, action_cost: int) -> void:
-	var travel_cost = target_room_distance * MOVE_COST_PER_UNIT
-	var return_cost = target_room_distance * MOVE_COST_PER_UNIT
+	var move_cost = MOVE_COST_PER_UNIT
+	# Apply Artifact Bonus
+	var move_bonus = get_artifact_bonus(Artifact.EffectType.REDUCE_MOVE_COST)
+	move_cost = move_cost * (1.0 - move_bonus)
+	move_cost = max(0, int(move_cost)) # Ensure non-negative integer
+	
+	var travel_cost = target_room_distance * move_cost
+	var return_cost = target_room_distance * move_cost
 	var total = travel_cost + action_cost + return_cost
 	print("DEBUG PATH COST: Dist: %d | Travel: %d | Action: %d | Return: %d | Total: %d" % [target_room_distance, travel_cost, action_cost, return_cost, total])
 func add_resources(loot_dict: Dictionary):
+	print("DEBUG: RobotState.add_resources called with: ", loot_dict)
 	if loot_dict.has("scrap_metal"):
-		scrap += loot_dict["scrap_metal"]
+		scrap += int(loot_dict["scrap_metal"])
 	if loot_dict.has("electronics"):
-		electronics += loot_dict["electronics"]
+		electronics += int(loot_dict["electronics"])
 	if loot_dict.has("food"):
-		food += loot_dict["food"]
+		food += int(loot_dict["food"])
 		# Optional: Auto-convert food to energy? Or keep it?
 		# For now, let's keep it as a resource, maybe for healing or trading later.
 	
@@ -273,3 +288,66 @@ func increase_base_energy(amount: int):
 	print("Base Energy Increased! New Max: %d" % base_max_energy)
 	# We might want a signal here if we had a UI listening for it live, 
 	# but screens usually update on show().
+
+# --- ARTIFACT LOGIC ---
+
+# Removed strict type hint to avoid cyclic dependency issues
+func add_artifact(artifact) -> bool:
+	if active_artifacts.size() >= MAX_ARTIFACT_SLOTS:
+		print("Cannot add artifact: Slots full!")
+		return false
+	
+	active_artifacts.append(artifact)
+	emit_signal("artifacts_changed")
+	print("Artifact added: %s" % artifact.name)
+	return true
+
+func get_artifact_bonus(effect_type: Artifact.EffectType) -> float:
+	var total_bonus = 0.0
+	for art in active_artifacts:
+		if art.effect_type == effect_type:
+			total_bonus += art.effect_value
+	return total_bonus
+
+# Helper to generate a random artifact (for testing/drops)
+func generate_random_artifact() -> Artifact:
+	var art = Artifact.new()
+	var types = [
+		Artifact.EffectType.REDUCE_MOVE_COST,
+		Artifact.EffectType.REDUCE_SCAN_COST,
+		Artifact.EffectType.REDUCE_DOOR_COST,
+		Artifact.EffectType.INCREASE_LOOT_SCRAP,
+		Artifact.EffectType.INCREASE_LOOT_ELEC
+	]
+	var type = types.pick_random()
+	art.effect_type = type
+	art.id = "art_%d" % randi()
+	
+	match type:
+		Artifact.EffectType.REDUCE_MOVE_COST:
+			art.name = "Grav-Boots"
+			art.description = "Reduces movement energy cost."
+			art.effect_value = 0.5 # -0.5 per step? Or percentage? Let's say flat reduction for now or percentage.
+			# Let's use percentage for simplicity in logic: 0.1 = 10% reduction
+			art.effect_value = 0.2
+		Artifact.EffectType.REDUCE_SCAN_COST:
+			art.name = "Scanner Mk2"
+			art.description = "Reduces scan energy cost."
+			art.effect_value = 0.25
+		Artifact.EffectType.REDUCE_DOOR_COST:
+			art.name = "Plasma Cutter"
+			art.description = "Reduces door breaking cost."
+			art.effect_value = 0.3
+		Artifact.EffectType.INCREASE_LOOT_SCRAP:
+			art.name = "Magnetic Arm"
+			art.description = "Increases scrap found."
+			art.effect_value = 0.5 # +50%
+		Artifact.EffectType.INCREASE_LOOT_ELEC:
+			art.name = "Copper Finder"
+			art.description = "Increases electronics found."
+			art.effect_value = 0.5
+			
+	# Placeholder icon (we can generate one or use existing)
+	# art.icon = ...
+	
+	return art

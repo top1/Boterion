@@ -23,6 +23,10 @@ func generate_map_data(seed_value: int) -> Dictionary:
 	rng.seed = seed_value
 
 	# Wir generieren die obere und untere Raumreihe getrennt.
+	# Reset factory count for this map generation
+	_current_factory_count = 0
+	_max_factories = rng.randi_range(2, 3) # Limit to 2-3 factories per map
+	
 	var top_rooms = _generate_row("A")
 	var bottom_rooms = _generate_row("B")
 
@@ -30,6 +34,9 @@ func generate_map_data(seed_value: int) -> Dictionary:
 		"top": top_rooms,
 		"bottom": bottom_rooms
 	}
+
+var _current_factory_count = 0
+var _max_factories = 0
 
 # Interne Hilfsfunktion zur Generierung einer einzelnen Raumreihe (oben oder unten).
 func _generate_row(id_prefix: String) -> Array[RoomData]:
@@ -74,10 +81,13 @@ func _generate_row(id_prefix: String) -> Array[RoomData]:
 		var door_offset = (room_size - 1) / 2
 		new_room.distance = int(current_pos + door_offset) + 1
 		
-		# Force Factory spawn near base (distance <= 5)
-		# Only spawn one factory per row (or globally? Let's say one per row for now)
-		if new_room.distance <= 5 and rng.randf() < 0.3: # 30% chance per room near base
+		# Force Factory spawn logic
+		# We want 2-3 factories globally.
+		# We can use a simple probability check, but we must respect the max count.
+		# Let's say we have a 10% chance per room to be a factory, if we haven't reached the limit.
+		if _current_factory_count < _max_factories and rng.randf() < 0.1:
 			new_room.type = RoomData.RoomType.FACTORY
+			_current_factory_count += 1
 		else:
 			new_room.type = _get_random_room_type()
 			

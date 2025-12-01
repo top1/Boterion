@@ -107,7 +107,196 @@ func _ready():
 	else:
 		repair_button = action_buttons_container.get_node("RepairButton")
 	
+	# 5. Create Resource Display (Scrap, Electronics, Food)
+	_setup_resource_display()
+	
+	# 6. Create Artifact Display (Top Bar)
+	_setup_artifact_display()
+	
 	show_screen()
+
+func _setup_artifact_display():
+	# We want it at the top, above the map.
+	# The structure is: MarginContainer -> VBoxContainer -> ScrollContainer
+	# We can insert it before the ScrollContainer.
+	var main_vbox = $MarginContainer/VBoxContainer
+	var scroll_container = main_vbox.get_node("ScrollContainer")
+	
+	if main_vbox.has_node("ArtifactBar"):
+		return
+		
+	var artifact_bar = HBoxContainer.new()
+	artifact_bar.name = "ArtifactBar"
+	artifact_bar.alignment = BoxContainer.ALIGNMENT_CENTER
+	artifact_bar.add_theme_constant_override("separation", 20)
+	artifact_bar.custom_minimum_size.y = 60
+	# artifact_bar.z_index = 10 # REMOVED: Causes input blocking if layout overlaps
+	artifact_bar.size_flags_vertical = Control.SIZE_SHRINK_BEGIN # Don't expand vertically
+	artifact_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE # Container shouldn't block mouse
+	
+	# Insert before ScrollContainer (index 0 usually)
+	main_vbox.add_child(artifact_bar)
+	main_vbox.move_child(artifact_bar, scroll_container.get_index())
+	
+	# Create Slots
+	for i in range(RobotState.MAX_ARTIFACT_SLOTS):
+		var slot = PanelContainer.new()
+		slot.name = "ArtifactSlot_%d" % i
+		slot.custom_minimum_size = Vector2(50, 50)
+		slot.mouse_filter = Control.MOUSE_FILTER_STOP # Catch mouse for tooltip
+		
+		# Style
+		var style = StyleBoxFlat.new()
+		style.bg_color = Color(0.1, 0.1, 0.1, 0.5)
+		style.border_width_left = 2
+		style.border_width_top = 2
+		style.border_width_right = 2
+		style.border_width_bottom = 2
+		style.border_color = Color(0.5, 0.5, 0.5)
+		style.corner_radius_top_left = 4
+		style.corner_radius_top_right = 4
+		style.corner_radius_bottom_right = 4
+		style.corner_radius_bottom_left = 4
+		slot.add_theme_stylebox_override("panel", style)
+		
+		var icon = TextureRect.new()
+		icon.name = "Icon"
+		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		icon.custom_minimum_size = Vector2(40, 40)
+		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE # Let click pass to slot
+		icon.modulate = Color(1, 1, 1, 0.5) # Dimmed if empty
+		
+		slot.add_child(icon)
+		artifact_bar.add_child(slot)
+		
+	# Connect signal
+	if not RobotState.artifacts_changed.is_connected(_update_artifact_display):
+		RobotState.artifacts_changed.connect(_update_artifact_display)
+		
+	_update_artifact_display()
+
+func _update_artifact_display():
+	var main_vbox = $MarginContainer/VBoxContainer
+	var artifact_bar = main_vbox.get_node_or_null("ArtifactBar")
+	if not artifact_bar:
+		print("DEBUG: ArtifactBar not found in _update_artifact_display")
+		return
+	
+	var active_artifacts = RobotState.active_artifacts
+	print("DEBUG: Updating Artifact Display. Count: %d" % active_artifacts.size())
+	
+	for i in range(RobotState.MAX_ARTIFACT_SLOTS):
+		var slot = artifact_bar.get_node("ArtifactSlot_%d" % i)
+		var icon = slot.get_node("Icon")
+		
+		if i < active_artifacts.size():
+			var art = active_artifacts[i]
+			print("DEBUG: Slot %d -> %s" % [i, art.name])
+			# icon.texture = art.icon # TODO: Add icons
+			# Placeholder visual:
+			icon.modulate = Color(1, 0.8, 0.2, 1.0) # Gold for artifact
+			slot.tooltip_text = "%s\n%s" % [art.name, art.description]
+			
+			# If we have no texture, maybe use a color rect or label?
+			# For now, let's just color the slot border
+			var style = slot.get_theme_stylebox("panel").duplicate()
+			style.border_color = Color(1, 0.8, 0.0)
+			slot.add_theme_stylebox_override("panel", style)
+			
+		else:
+			# print("DEBUG: Slot %d -> Empty" % i)
+			icon.texture = null
+			icon.modulate = Color(1, 1, 1, 0.1)
+			slot.tooltip_text = "Empty Artifact Slot"
+			
+			var style = slot.get_theme_stylebox("panel").duplicate()
+			style.border_color = Color(0.3, 0.3, 0.3)
+			slot.add_theme_stylebox_override("panel", style)
+
+
+func _setup_resource_display():
+	# Find the right-side container (parent of action_buttons_container)
+	var right_panel = action_buttons_container.get_parent()
+	
+	# Create a container for resources if it doesn't exist
+	var resource_container = right_panel.get_node_or_null("ResourceContainer")
+	if not resource_container:
+		resource_container = PanelContainer.new()
+		resource_container.name = "ResourceContainer"
+		resource_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		
+		# Add a stylebox for background (optional, similar to other panels)
+		var style = StyleBoxFlat.new()
+		style.bg_color = Color(0.1, 0.1, 0.1, 0.8)
+		style.border_width_left = 2
+		style.border_width_top = 2
+		style.border_width_right = 2
+		style.border_width_bottom = 2
+		style.border_color = Color(0.3, 0.3, 0.3)
+		resource_container.add_theme_stylebox_override("panel", style)
+		
+		var vbox = VBoxContainer.new()
+		vbox.name = "ContentVBox" # Explicitly name it!
+		resource_container.add_child(vbox)
+		
+		var title = Label.new()
+		title.text = "BASE RESOURCES"
+		title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		title.add_theme_color_override("font_color", Color(0.6, 0.8, 1.0))
+		vbox.add_child(title)
+		
+		var grid = GridContainer.new()
+		grid.columns = 2
+		grid.name = "ResourceGrid"
+		vbox.add_child(grid)
+		
+		# Helper to add rows
+		var _add_row = func(label_text, color, value_name):
+			var l = Label.new()
+			l.text = label_text
+			l.add_theme_color_override("font_color", color)
+			grid.add_child(l)
+			
+			var v = Label.new()
+			v.name = value_name
+			v.text = "0"
+			v.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+			v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			grid.add_child(v)
+			
+		_add_row.call("Scrap:", Color(0.7, 0.7, 0.7), "ScrapValue")
+		_add_row.call("Electronics:", Color(0.0, 1.0, 1.0), "ElecValue")
+		_add_row.call("Food:", Color(1.0, 0.6, 0.0), "FoodValue")
+		
+		# Add to the right panel, at the bottom
+		right_panel.add_child(resource_container)
+		# Ensure it's at the bottom if needed, but append puts it last which is good.
+		
+	# Connect Signals
+	if not RobotState.resources_changed.is_connected(_update_resource_display):
+		RobotState.resources_changed.connect(_update_resource_display)
+	
+	# Initial Update
+	_update_resource_display()
+
+func _update_resource_display():
+	var right_panel = action_buttons_container.get_parent()
+	
+	# Lazy Load: If it doesn't exist yet (e.g. hot reload or race condition), create it.
+	if not right_panel.has_node("ResourceContainer"):
+		_setup_resource_display()
+		return # _setup calls _update, so we are done
+		
+	var grid = right_panel.get_node_or_null("ResourceContainer/ContentVBox/ResourceGrid")
+	if grid:
+		print("DEBUG: Updating Resource Display. Scrap: %d, Elec: %d, Food: %d" % [RobotState.scrap, RobotState.electronics, RobotState.food])
+		grid.get_node("ScrapValue").text = str(RobotState.scrap)
+		grid.get_node("ElecValue").text = str(RobotState.electronics)
+		grid.get_node("FoodValue").text = str(RobotState.food)
+	else:
+		print("ERROR: ResourceGrid not found in _update_resource_display!")
+
 
 func _apply_retro_theme():
 	# Enable BBCode for all text labels
@@ -370,7 +559,18 @@ func _on_room_selected(room_data: RoomData, room_node: Button = null):
 func _on_scan_pressed():
 	if not current_selected_room: return
 	var travel_cost = abs(current_selected_room.distance - last_position_in_plan) * RobotState.MOVE_COST_PER_UNIT
+	
+	# Apply Artifact Bonus for Move Cost (if we want to apply it to travel cost calculation here too)
+	# Ideally, RobotState should expose a "get_current_move_cost()" function.
+	# For now, let's manually apply it to be consistent.
+	var move_bonus = RobotState.get_artifact_bonus(Artifact.EffectType.REDUCE_MOVE_COST)
+	var move_cost = RobotState.MOVE_COST_PER_UNIT * (1.0 - move_bonus)
+	travel_cost = abs(current_selected_room.distance - last_position_in_plan) * int(move_cost)
+	
 	var action_cost = RobotState.SCAN_COST
+	# Apply Artifact Bonus for Scan
+	var scan_bonus = RobotState.get_artifact_bonus(Artifact.EffectType.REDUCE_SCAN_COST)
+	action_cost = int(action_cost * (1.0 - scan_bonus))
 	var total_cost = travel_cost + action_cost
 	
 	# FIX: Ensure we can return home!
@@ -389,8 +589,15 @@ func _on_scan_pressed():
 
 func _on_open_pressed():
 	if not current_selected_room: return
-	var travel_cost = abs(current_selected_room.distance - last_position_in_plan) * RobotState.MOVE_COST_PER_UNIT
+	# Apply Artifact Bonus for Move Cost
+	var move_bonus = RobotState.get_artifact_bonus(Artifact.EffectType.REDUCE_MOVE_COST)
+	var move_cost = RobotState.MOVE_COST_PER_UNIT * (1.0 - move_bonus)
+	var travel_cost = abs(current_selected_room.distance - last_position_in_plan) * int(move_cost)
+	
 	var action_cost = current_selected_room.door_strength
+	# Apply Artifact Bonus for Door
+	var door_bonus = RobotState.get_artifact_bonus(Artifact.EffectType.REDUCE_DOOR_COST)
+	action_cost = int(action_cost * (1.0 - door_bonus))
 	var total_cost = travel_cost + action_cost
 	
 	# FIX: Ensure we can return home!
@@ -718,6 +925,8 @@ func show_screen():
 	# 3. Zeichne die UI basierend auf dem (jetzt korrekten) Zustand neu.
 	update_mission_plan_display()
 	_update_energy_bar_display()
+	_update_resource_display() # Force update resources
+	_update_artifact_display() # Force update artifacts
 
 func is_plan_empty() -> bool:
 	return mission_plan.is_empty()
@@ -807,8 +1016,17 @@ func _on_execute_plan_pressed():
 				var energy_planned = mission.cost
 				var energy_actually_spent = 0
 				# KORRIGIERT: Verwende RobotState
+				# KORRIGIERT: Verwende RobotState
+				var loot_bonus_e = RobotState.get_artifact_bonus(Artifact.EffectType.INCREASE_LOOT_ELEC)
+				var loot_bonus_s = RobotState.get_artifact_bonus(Artifact.EffectType.INCREASE_LOOT_SCRAP)
+				
 				var scavenged_e = min(room.loot_pool.electronics.current, energy_planned / RobotState.ENERGY_PER_ELECTRONIC)
+				scavenged_e = int(scavenged_e * (1.0 + loot_bonus_e))
+				scavenged_e = min(scavenged_e, room.loot_pool.electronics.current)
+				
 				var scavenged_s = min(room.loot_pool.scrap_metal.current, energy_planned / RobotState.ENERGY_PER_SCRAP)
+				scavenged_s = int(scavenged_s * (1.0 + loot_bonus_s))
+				scavenged_s = min(scavenged_s, room.loot_pool.scrap_metal.current)
 				
 				energy_actually_spent += scavenged_e * RobotState.ENERGY_PER_ELECTRONIC
 				energy_actually_spent += scavenged_s * RobotState.ENERGY_PER_SCRAP
@@ -840,8 +1058,24 @@ func _on_execute_plan_pressed():
 				var energy_planned = mission.cost
 				var energy_actually_spent = 0
 				# KORRIGIERT: Verwende RobotState
+				# KORRIGIERT: Verwende RobotState
+				var loot_bonus_b = RobotState.get_artifact_bonus(Artifact.EffectType.INCREASE_LOOT_BLUEPRINT)
+				var loot_bonus_f = RobotState.get_artifact_bonus(Artifact.EffectType.INCREASE_LOOT_FOOD)
+				
 				var looted_b = min(room.loot_pool.blueprints.current, energy_planned / RobotState.ENERGY_PER_BLUEPRINT)
+				# Apply bonus? Usually bonus means you get MORE for same energy, or find more?
+				# Let's say it increases the YIELD.
+				# But we are limited by room contents.
+				# Let's say it increases the effective energy? No.
+				# Let's say it multiplies the result, capping at room content?
+				# Or it allows extracting MORE than normal?
+				# Let's simple multiply the result (if available in room).
+				looted_b = int(looted_b * (1.0 + loot_bonus_b))
+				looted_b = min(looted_b, room.loot_pool.blueprints.current) # Still capped by room
+				
 				var looted_f = min(room.loot_pool.food.current, energy_planned / RobotState.ENERGY_PER_FOOD)
+				looted_f = int(looted_f * (1.0 + loot_bonus_f))
+				looted_f = min(looted_f, room.loot_pool.food.current)
 				
 				energy_actually_spent += looted_b * RobotState.ENERGY_PER_BLUEPRINT
 				energy_actually_spent += looted_b * RobotState.ENERGY_PER_BLUEPRINT
@@ -875,6 +1109,19 @@ func _on_execute_plan_pressed():
 				if unused_action_energy > 0:
 					collected_loot["energy_refund"] = collected_loot.get("energy_refund", 0) + unused_action_energy
 
+		# --- ARTIFACT DROP LOGIC (Global check per mission) ---
+		# Only for LOOT, SCAVENGE, REPAIR (User requested no SCAN)
+		if mission.type in ["LOOT", "SCAVENGE", "REPAIR"]:
+			# Chance to find an artifact
+			# DEBUG: Increased to 20% for testing
+			print("DEBUG: Checking for artifact drop (Mission: %s)..." % mission.type)
+			if randf() < 0.20:
+				var artifact = RobotState.generate_random_artifact()
+				if artifact:
+					if not collected_loot.has("artifacts"):
+						collected_loot["artifacts"] = []
+					collected_loot["artifacts"].append(artifact)
+					print("LUCKY! Found artifact: %s" % artifact.name)
 	# --- FINALE BERECHNUNGEN & ZUSTANDS-UPDATES ---
 	
 	## 1. Berechne die finalen Energiekosten und aktualisiere den Roboter
@@ -949,6 +1196,22 @@ func _on_execute_plan_pressed():
 
 # Diese Funktion wird von Godot bei jedem Tastendruck aufgerufen
 func _unhandled_input(event: InputEvent):
+	# DEBUG: F9 to add random artifact
+	if event is InputEventKey and event.pressed and event.keycode == KEY_F9:
+		print("DEBUG: F9 pressed - Adding random artifact")
+		var art = RobotState.generate_random_artifact()
+		RobotState.add_artifact(art)
+		# Assuming _update_artifact_display() is a method that exists and updates the UI
+		# If not, this line might cause an error or do nothing.
+		# For now, keeping it as per the instruction.
+		_update_artifact_display()
+		get_viewport().set_input_as_handled() # Consume the event
+
+	if event.is_action_pressed("ui_cancel"):
+		# Open Pause/Menu? For now just quit or nothing
+		pass
+		get_viewport().set_input_as_handled() # Consume the event
+		
 	# Prüfe, ob die Taste "toggle_debug_view" gerade gedrückt wurde
 	if event.is_action_pressed("toggle_debug_view"):
 		# Schalte die Sichtbarkeit des Panels um
@@ -960,27 +1223,9 @@ func _unhandled_input(event: InputEvent):
 		if debug_inspector_panel.visible:
 			update_debug_inspector()
 			
-	# --- DEBUG CHEAT: F8 to test Reward Screen ---
-	if event is InputEventKey and event.pressed and event.keycode == KEY_F8:
-		print("DEBUG: Triggering Fake Reward Screen")
-		var screen_manager = get_tree().get_first_node_in_group("ScreenManager")
-		if screen_manager:
-			var reward_screen = screen_manager.get_node("RewardScreen")
-			if reward_screen:
-				# Create a fake legendary item
-				var fake_item = load("res://items/mini_fusion_reactor.tres") # Assuming this exists and is legendary
-				if not fake_item:
-					# Fallback if specific item not found
-					fake_item = RobotState.all_items_cache.pick_random()
-				
-				var fake_loot = {
-					"scrap_metal": 123,
-					"electronics": 45,
-					"food": 12,
-					"blueprints": [fake_item]
-				}
-				reward_screen.show_rewards(fake_loot)
-				screen_manager.show_screen("reward")
+	# --- DEBUG CHEAT: F8 REMOVED ---
+	#ä#(User reported crash, removing debug binding)
+	pass
 
 # Diese Funktion füllt das Debug-Panel mit den Daten des aktuell gewählten Raumes
 func update_debug_inspector():

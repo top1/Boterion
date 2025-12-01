@@ -16,6 +16,7 @@ extends Control
 
 var _current_loot: Dictionary = {}
 var _found_blueprints: Array = []
+var _found_artifacts: Array = [] # New
 var _scanned_rooms: Array = []
 
 var scanned_rooms_container: HBoxContainer
@@ -81,6 +82,11 @@ func show_rewards(collected_loot: Dictionary):
 		_scanned_rooms = collected_loot["scanned_rooms"]
 	else:
 		_scanned_rooms = []
+		
+	if collected_loot.has("artifacts"):
+		_found_artifacts = collected_loot["artifacts"]
+	else:
+		_found_artifacts = []
 	
 	# Clear old scanned rooms
 	if scanned_rooms_container:
@@ -203,6 +209,8 @@ func _add_scanned_room_icon(room):
 func _on_resources_finished():
 	if not _found_blueprints.is_empty():
 		_start_blueprint_reveal()
+	elif not _found_artifacts.is_empty():
+		_start_artifact_reveal()
 	else:
 		_show_continue()
 
@@ -311,6 +319,8 @@ func _check_more_blueprints():
 	if not _found_blueprints.is_empty():
 		# Reset for next one
 		_start_blueprint_reveal()
+	elif not _found_artifacts.is_empty():
+		_start_artifact_reveal()
 	else:
 		_show_continue()
 
@@ -322,7 +332,16 @@ func _show_continue():
 
 func _on_continue_pressed():
 	# Add resources to RobotState
+	print("DEBUG: RewardScreen calling add_resources with: ", _current_loot)
 	RobotState.add_resources(_current_loot)
+	
+	# Add Artifacts
+	if _current_loot.has("artifacts"):
+		print("DEBUG: RewardScreen found artifacts in loot: ", _current_loot["artifacts"])
+		for art in _current_loot["artifacts"]:
+			RobotState.add_artifact(art)
+	else:
+		print("DEBUG: No artifacts in _current_loot")
 	
 	# Calculate total items for stats (optional, but good for tracking)
 	var _total_items = 0
@@ -341,3 +360,99 @@ func _play_tick_sound():
 	# Simple limiter to prevent audio spam
 	if %ResourceTickPlayer.stream and not %ResourceTickPlayer.playing:
 		%ResourceTickPlayer.play()
+
+# --- ARTIFACT REVEAL LOGIC ---
+
+func _start_artifact_reveal():
+	blueprint_stage.visible = true
+	blueprint_label.text = "ANCIENT ARTIFACT DETECTED!"
+	blueprint_label.modulate = Color(1, 0.8, 0.2) # Gold
+	
+	mystery_box.visible = true
+	mystery_box.scale = Vector2.ONE
+	mystery_box.rotation = 0
+	# Use a different texture or color for artifact box if possible?
+	mystery_box.modulate = Color(1, 0.8, 0.2) # Tint it Gold
+	
+	revealed_item_icon.visible = false
+	revealed_item_name.visible = false
+	
+	# Pulse animation
+	var tween = create_tween()
+	tween.set_loops()
+	tween.tween_property(mystery_box, "scale", Vector2(1.2, 1.2), 0.4).set_trans(Tween.TRANS_SINE)
+	tween.tween_property(mystery_box, "scale", Vector2(1.0, 1.0), 0.4).set_trans(Tween.TRANS_SINE)
+	
+	# Connect input
+	if mystery_box.gui_input.is_connected(_on_mystery_box_clicked):
+		mystery_box.gui_input.disconnect(_on_mystery_box_clicked)
+	mystery_box.gui_input.connect(_on_artifact_box_clicked)
+	mystery_box.mouse_filter = Control.MOUSE_FILTER_STOP
+
+func _on_artifact_box_clicked(event):
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		if mystery_box.gui_input.is_connected(_on_artifact_box_clicked):
+			mystery_box.gui_input.disconnect(_on_artifact_box_clicked)
+		_reveal_next_artifact()
+
+func _reveal_next_artifact():
+	# Shake harder for artifact
+	var tween = create_tween()
+	for i in range(15):
+		var offset = Vector2(randf_range(-8, 8), randf_range(-8, 8))
+		tween.tween_property(mystery_box, "position", mystery_box.position + offset, 0.04)
+		tween.tween_property(mystery_box, "position", mystery_box.position - offset, 0.04)
+	
+	tween.tween_callback(_show_artifact_content)
+
+func _show_artifact_content():
+	var artifact = _found_artifacts.pop_front()
+	
+	mystery_box.visible = false
+	mystery_box.modulate = Color.WHITE # Reset tint
+	
+	# revealed_item_icon.texture = artifact.icon # TODO
+	revealed_item_icon.visible = true
+	revealed_item_icon.scale = Vector2(0.1, 0.1)
+	revealed_item_icon.modulate = Color(1, 0.8, 0.2) # Gold placeholder
+	
+	revealed_item_name.text = artifact.name
+	revealed_item_name.visible = true
+	revealed_item_name.modulate = Color(1, 0.8, 0.2)
+	revealed_item_name.modulate.a = 0
+	
+	blueprint_label.text = "ARTIFACT ACQUIRED"
+	
+	# Add description label dynamically if needed, or just show name
+	
+	# --- FLASH EFFECT ---
+	var flash = %FlashOverlay
+	flash.visible = true
+	flash.modulate = Color(1, 0.9, 0.5, 1.0) # Gold flash
+	var flash_tween = create_tween()
+	flash_tween.tween_property(flash, "modulate:a", 0.0, 0.8)
+	flash_tween.tween_callback(func(): flash.visible = false)
+	
+	# --- PARTICLES ---
+	var particles = preload("res://RewardParticles.tscn").instantiate()
+	particles.position = revealed_item_icon.position + revealed_item_icon.size / 2
+	particles.modulate = Color(1, 0.8, 0.2) # Gold
+	blueprint_stage.add_child(particles)
+	particles.emitting = true
+	
+	var tween = create_tween()
+	tween.set_parallel(true)
+	tween.set_trans(Tween.TRANS_ELASTIC)
+	tween.set_ease(Tween.EASE_OUT)
+	
+	tween.tween_property(revealed_item_icon, "scale", Vector2(1.5, 1.5), 0.8)
+	tween.tween_property(revealed_item_name, "modulate:a", 1.0, 0.5)
+	
+	tween.chain().tween_interval(1.5)
+	tween.chain().tween_callback(_check_more_artifacts)
+
+func _check_more_artifacts():
+	if not _found_artifacts.is_empty():
+		_start_artifact_reveal()
+	else:
+		_show_continue()

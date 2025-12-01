@@ -28,20 +28,65 @@ signal equipment_changed
 
 # --- Logik ---
 
+var _is_initializing: bool = false
+
 func show_screen():
 	show()
-	# Update slider with new max from equipment
-	var bonuses = _calculate_equipment_bonuses()
-	RobotState.update_equipment_bonuses(bonuses.energy, bonuses.storage)
+	print("--- ROBOT EQUIP SCREEN OPENED ---")
 	
-	# CENTRALIZED UPDATE: Delegate all UI updates to update_robot_stats
-	# We removed the manual slider setting here to avoid conflicts.
+	# Flag to prevent "free energy" logic during initialization
+	_is_initializing = true
+	
+	# Wait for a frame to ensure all slots are initialized and ready
+	await get_tree().process_frame
+	
+	# FAILSAFE: If Max Energy is still at base (100) but we have items, 
+	# it means _ready() didn't catch them (e.g. added later). Force update.
+	# We check if we have ANY equipped item.
+	var has_equipment = false
+	for slot in equipment_slots:
+		if slot.current_equipped_item:
+			has_equipment = true
+			break
+			
+	if has_equipment and RobotState.MAX_ENERGY == RobotState.robot_base_max_energy:
+		print("--- DEBUG: Failsafe triggered! Recalculating bonuses... ---")
+		var bonuses = _calculate_equipment_bonuses()
+		RobotState.update_equipment_bonuses(bonuses.energy, bonuses.storage)
+	
+	# Done initializing
+	_is_initializing = false
 	
 	# FIX: Ensure we update stats to set initial slider state correctly
 	update_robot_stats()
 	
 	_update_charge_info()
 	_update_inventory_list()
+	
+	# Trigger the requested animation
+	_animate_slider_initialization()
+
+func _animate_slider_initialization():
+	# 1. Wait 1 second as requested
+	await get_tree().create_timer(1.0).timeout
+	
+	# 2. Ensure stats are fresh
+	update_robot_stats()
+	
+	# 3. Calculate target (Max possible charge)
+	var max_possible = min(RobotState.MAX_ENERGY, RobotState.current_energy + RobotState.base_energy_current)
+	
+	# If we are already full or can't charge, don't animate
+	if max_possible <= RobotState.current_energy:
+		return
+		
+	# 4. Animate!
+	var tween = create_tween()
+	tween.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tween.tween_property(charge_slider, "value", max_possible, 1.0)
+	
+	# Optional: Unlock explicitly if needed, though update_robot_stats handles it
+	charge_slider.editable = true
 
 func _update_charge_info():
 	var target_energy = int(charge_slider.value)
@@ -76,14 +121,20 @@ func _calculate_equipment_bonuses() -> Dictionary:
 	var bonus_energy = 0
 	var bonus_storage = 0
 	
+	print("--- DEBUG: Calculating Equipment Bonuses ---")
 	for slot in equipment_slots:
 		if slot.current_equipped_item:
+			print("Slot %s has item: %s" % [slot.name, slot.current_equipped_item.item_name])
 			var modifiers = slot.current_equipped_item.stats_modifier
 			if modifiers.has("energy"):
 				bonus_energy += modifiers["energy"]
 			if modifiers.has("storage"):
 				bonus_storage += modifiers["storage"]
+		else:
+			# print("Slot %s is empty" % slot.name)
+			pass
 	
+	print("Total Bonuses: Energy=%d, Storage=%d" % [bonus_energy, bonus_storage])
 	return {
 		"energy": bonus_energy,
 		"storage": bonus_storage
@@ -190,7 +241,8 @@ func _on_equipment_changed(_item = null):
 	var diff = RobotState.MAX_ENERGY - old_max_energy
 	
 	# If we gained capacity (e.g. equipped a battery), add that charge instantly!
-	if diff > 0:
+	# BUT NOT IF INITIALIZING (prevents free energy exploit on screen open)
+	if diff > 0 and not _is_initializing:
 		RobotState.current_energy += diff
 		# Clamp just in case, though logic implies it's safe
 		RobotState.current_energy = min(RobotState.current_energy, RobotState.MAX_ENERGY)
