@@ -53,6 +53,7 @@ var daily_research_options: Array[Resource] = []
 # --- ARTIFACTS ---
 const MAX_ARTIFACT_SLOTS: int = 4
 var active_artifacts: Array = []
+var artifact_inventory: Array = [] # NEW: Storage for unequipped artifacts
 signal artifacts_changed
 
 # --- SIGNALS ---
@@ -68,6 +69,38 @@ func _ready():
 	
 	# --- DEBUG: ADD NEW ITEMS FOR TESTING ---
 	call_deferred("_debug_add_test_items")
+
+# ... (Rest of file) ...
+
+# --- ARTIFACT LOGIC ---
+
+# Removed strict type hint to avoid cyclic dependency issues
+func add_artifact(artifact) -> bool:
+	# NEW LOGIC: Add to INVENTORY, not active slots
+	artifact_inventory.append(artifact)
+	emit_signal("artifacts_changed")
+	print("Artifact added to storage: %s" % artifact.name)
+	return true
+
+func equip_artifact(artifact) -> bool:
+	if active_artifacts.size() >= MAX_ARTIFACT_SLOTS:
+		print("Cannot equip artifact: Slots full!")
+		return false
+		
+	if artifact in artifact_inventory:
+		artifact_inventory.erase(artifact)
+		active_artifacts.append(artifact)
+		emit_signal("artifacts_changed")
+		return true
+	return false
+
+func unequip_artifact(artifact) -> bool:
+	if artifact in active_artifacts:
+		active_artifacts.erase(artifact)
+		artifact_inventory.append(artifact)
+		emit_signal("artifacts_changed")
+		return true
+	return false
 
 func _debug_add_test_items():
 	print("--- DEBUG: Adding Test Items ---")
@@ -289,16 +322,16 @@ func increase_base_energy(amount: int):
 
 # --- ARTIFACT LOGIC ---
 
-# Removed strict type hint to avoid cyclic dependency issues
-func add_artifact(artifact) -> bool:
-	if active_artifacts.size() >= MAX_ARTIFACT_SLOTS:
-		print("Cannot add artifact: Slots full!")
-		return false
-	
-	active_artifacts.append(artifact)
-	emit_signal("artifacts_changed")
-	print("Artifact added: %s" % artifact.name)
-	return true
+# Replaced by new logic above, but keeping helper methods
+# (Note: I moved the add_artifact logic to the variable declaration block in the previous step, 
+#  so I should actually REMOVE this duplicate function definition or merge them. 
+#  Wait, I can't define functions in the variable block. 
+#  I made a mistake in the previous step's instruction vs content. 
+#  I put the function in the variable block area. That is valid GDScript but messy.
+#  Let's clean up here.)
+
+# The previous step replaced lines 53-71 with code that INCLUDED the new functions.
+# So I should DELETE the old function here.
 
 func get_artifact_bonus(effect_type: Artifact.EffectType) -> float:
 	var total_bonus = 0.0

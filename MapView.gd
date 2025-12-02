@@ -1424,7 +1424,23 @@ func _unhandled_input(event: InputEvent):
 			
 	# --- DEBUG CHEAT: F9 ---
 	if event is InputEventKey and event.pressed and event.keycode == KEY_F9:
-		RobotState.debug_give_scanners()
+		# RobotState.debug_give_scanners() # OLD SILENT ADD
+		# NEW: Simulate a real drop via Reward Screen
+		var artifact = RobotState.generate_random_artifact()
+		if artifact:
+			var loot = {
+				"artifacts": [artifact],
+				"scrap_metal": 0,
+				"electronics": 0,
+				"food": 0
+			}
+			var screen_manager = get_tree().get_first_node_in_group("ScreenManager")
+			if screen_manager:
+				var reward_screen = screen_manager.get_node("RewardScreen")
+				if reward_screen:
+					reward_screen.show_rewards(loot)
+				screen_manager.show_screen("reward")
+		
 		get_viewport().set_input_as_handled()
 		
 	# --- DEBUG CHEAT: F8 REMOVED ---

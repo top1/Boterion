@@ -1,7 +1,7 @@
 # InventorySlot.gd
 extends Control # Supports both PanelContainer and Button
 
-@export var item: Item = null:
+@export var item: Resource = null:
 	set(value):
 		item = value
 		if is_node_ready():
@@ -25,24 +25,49 @@ func update_display():
 	# Use is_class to avoid static type error since this script extends Control
 	if self.is_class("Button"):
 		if item:
-			self.set("icon", item.item_texture)
+			var tex = null
+			var text_name = ""
+			var tooltip = ""
+			
+			# Handle Item
+			if item.get("item_texture"):
+				tex = item.item_texture
+				text_name = item.item_name
+				var desc = item.description if "description" in item else ""
+				var stats_text = ""
+				if item.get("stats_modifier"):
+					for key in item.stats_modifier:
+						var val = item.stats_modifier[key]
+						stats_text += "\n%s: +%d" % [key.capitalize(), val]
+				tooltip = "%s\n%s%s" % [text_name, desc, stats_text]
+			
+			# Handle Artifact
+			elif item.get("icon") or item.has_method("get_icon"): # Duck typing
+				tex = item.icon if "icon" in item else null
+				if not tex: tex = preload("res://icon.svg") # Placeholder
+				text_name = item.name if "name" in item else "Artifact"
+				var desc = item.description if "description" in item else ""
+				tooltip = "%s\n%s" % [text_name, desc]
+				
+			self.set("icon", tex)
 			self.set("icon_alignment", HORIZONTAL_ALIGNMENT_CENTER)
 			self.set("expand_icon", true)
-			# Optional: Tooltip
-			var desc = item.description if "description" in item else ""
-			var stats_text = ""
-			if item.stats_modifier:
-				for key in item.stats_modifier:
-					var val = item.stats_modifier[key]
-					stats_text += "\n%s: +%d" % [key.capitalize(), val]
-			self.tooltip_text = "%s\n%s%s" % [item.item_name, desc, stats_text]
+			self.tooltip_text = tooltip
 		else:
 			self.set("icon", null)
 	else:
 		# Fallback for PanelContainer usage
 		if has_node("ItemTexture"):
 			if item:
-				$ItemTexture.texture = item.item_texture
+				var tex = null
+				if item.get("item_texture"):
+					tex = item.item_texture
+				elif item.get("icon"):
+					tex = item.icon
+				else:
+					tex = preload("res://icon.svg")
+					
+				$ItemTexture.texture = tex
 				$ItemTexture.visible = true
 			else:
 				$ItemTexture.texture = null
@@ -64,8 +89,14 @@ func _get_drag_data(_at_position: Vector2) -> Variant:
 	var drag_preview_wrapper = Control.new()
 	
 	# Create the texture and make it a child of the wrapper
+	# Create the texture and make it a child of the wrapper
 	var drag_preview_texture = TextureRect.new()
-	drag_preview_texture.texture = item.item_texture
+	var tex = null
+	if item.get("item_texture"): tex = item.item_texture
+	elif item.get("icon"): tex = item.icon
+	else: tex = preload("res://icon.svg")
+	
+	drag_preview_texture.texture = tex
 	drag_preview_texture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	drag_preview_texture.custom_minimum_size = Vector2(64, 64) # Or your slot size
 	drag_preview_wrapper.add_child(drag_preview_texture)
@@ -95,7 +126,7 @@ func _can_drop_data(_at_position: Vector2, data: Variant) -> bool:
 	return data is Dictionary and data.has("type") and data["type"] == "inventory_item"
 
 func _drop_data(_at_position: Vector2, data: Variant):
-	var new_item: Item = data["item_resource"]
+	var new_item: Resource = data["item_resource"]
 	var source_slot = data["source_slot"]
 	
 	# Check what kind of slot the item came from

@@ -84,7 +84,9 @@ func show_rewards(collected_loot: Dictionary):
 		_scanned_rooms = []
 		
 	if collected_loot.has("artifacts"):
-		_found_artifacts = collected_loot["artifacts"]
+		# IMPORTANT: Duplicate the array so we don't empty the original loot dictionary
+		# when we pop items for the reveal animation!
+		_found_artifacts = collected_loot["artifacts"].duplicate()
 	else:
 		_found_artifacts = []
 	
