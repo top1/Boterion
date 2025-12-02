@@ -337,11 +337,8 @@ func _on_continue_pressed():
 	
 	# Add Artifacts
 	if _current_loot.has("artifacts"):
-		print("DEBUG: RewardScreen found artifacts in loot: ", _current_loot["artifacts"])
 		for art in _current_loot["artifacts"]:
 			RobotState.add_artifact(art)
-	else:
-		print("DEBUG: No artifacts in _current_loot")
 	
 	# Calculate total items for stats (optional, but good for tracking)
 	var _total_items = 0

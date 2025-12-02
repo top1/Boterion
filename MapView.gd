@@ -57,6 +57,10 @@ func _ready():
 	# Rufe show_screen() auf, um den initialen Zustand des Spiels zu zeichnen.
 	# Diese Funktion wird von nun an vom ScreenManager für jeden neuen Tag aufgerufen.
 	
+	# Connect to RobotState signals for live updates
+	if not RobotState.energy_changed.is_connected(_on_robot_energy_changed):
+		RobotState.energy_changed.connect(_on_robot_energy_changed)
+	
 	# --- VISUAL OVERHAUL SETUP ---
 	_apply_retro_theme()
 	
@@ -95,6 +99,18 @@ func _ready():
 		# Add it BEFORE the robot energy bar (so it's on top)
 		energy_container.add_child(base_energy_bar)
 		energy_container.move_child(base_energy_bar, energy_bar.get_index())
+		
+		# 3b. Create Recharge Button (New Request)
+		var recharge_btn = Button.new()
+		recharge_btn.name = "RechargeButton"
+		recharge_btn.text = "RECHARGE"
+		recharge_btn.add_theme_color_override("font_color", Color(0, 1, 0))
+		recharge_btn.pressed.connect(_on_recharge_button_pressed)
+		energy_container.add_child(recharge_btn)
+		energy_container.move_child(recharge_btn, base_energy_bar.get_index() + 1)
+		
+		# 3c. Create Recharge Popup (Hidden by default)
+		_setup_recharge_popup()
 	
 	# 4. Create Repair Button dynamically
 	if not action_buttons_container.has_node("RepairButton"):
@@ -176,15 +192,63 @@ func _setup_artifact_display():
 		
 	_update_artifact_display()
 
+	_update_artifact_display()
+
+# --- SCROLL TILT ANIMATION ---
+var _last_scroll_x: float = 0.0
+var _scroll_velocity: float = 0.0
+const TILT_FACTOR = 0.05 # Adjust sensitivity
+const MAX_TILT = 15.0
+
+func _process(delta):
+	var scroll_container = $MarginContainer/VBoxContainer/ScrollContainer
+	var current_scroll_x = scroll_container.scroll_horizontal
+	
+	# Calculate velocity (pixels per frame -> pixels per second approx)
+	var velocity = (current_scroll_x - _last_scroll_x) / delta
+	
+	# Smooth velocity for less jitter
+	_scroll_velocity = lerp(_scroll_velocity, velocity, 0.2)
+	
+	# Calculate target tilt angle
+	# Velocity is positive when scrolling right (content moves left relative to view)
+	# We want "drag" effect: if moving right, tilt left (negative rotation).
+	# Wait, if I scroll right, the content moves left.
+	# Let's try: tilt = -velocity * factor
+	var target_tilt = clamp(-_scroll_velocity * TILT_FACTOR, -MAX_TILT, MAX_TILT)
+	
+	# Apply to all visible rooms
+	_apply_tilt_to_row(top_row_container, target_tilt)
+	_apply_tilt_to_row(bottom_row_container, target_tilt)
+	
+	_last_scroll_x = current_scroll_x
+
+func _apply_tilt_to_row(container: Control, tilt: float):
+	for placeholder in container.get_children():
+		if placeholder.get_child_count() > 0:
+			var room = placeholder.get_child(0)
+			if room.has_method("apply_tilt"):
+				room.apply_tilt(tilt)
+
 func _update_artifact_display():
+	_refresh_map_particles()
+	
+	# Also update the Base Energy Bar if it exists
+	var energy_container = energy_bar.get_parent()
+	if energy_container.has_node("BaseEnergyBar"):
+		var bar = energy_container.get_node("BaseEnergyBar")
+		bar.max_value = RobotState.base_max_energy
+		bar.value = RobotState.base_energy_current
+		
+		var label = bar.get_node("BaseEnergyLabel")
+		label.text = "Base Energy: %d / %d" % [RobotState.base_energy_current, RobotState.base_max_energy]
+
 	var main_vbox = $MarginContainer/VBoxContainer
 	var artifact_bar = main_vbox.get_node_or_null("ArtifactBar")
 	if not artifact_bar:
-		print("DEBUG: ArtifactBar not found in _update_artifact_display")
 		return
 	
 	var active_artifacts = RobotState.active_artifacts
-	print("DEBUG: Updating Artifact Display. Count: %d" % active_artifacts.size())
 	
 	for i in range(RobotState.MAX_ARTIFACT_SLOTS):
 		var slot = artifact_bar.get_node("ArtifactSlot_%d" % i)
@@ -192,7 +256,6 @@ func _update_artifact_display():
 		
 		if i < active_artifacts.size():
 			var art = active_artifacts[i]
-			print("DEBUG: Slot %d -> %s" % [i, art.name])
 			# icon.texture = art.icon # TODO: Add icons
 			# Placeholder visual:
 			icon.modulate = Color(1, 0.8, 0.2, 1.0) # Gold for artifact
@@ -204,6 +267,21 @@ func _update_artifact_display():
 			style.border_color = Color(1, 0.8, 0.0)
 			slot.add_theme_stylebox_override("panel", style)
 			
+			# Add Particles
+			if not slot.has_node("Particles"):
+				var particles = CPUParticles2D.new()
+				particles.name = "Particles"
+				particles.amount = 15
+				particles.lifetime = 1.5
+				particles.emission_shape = CPUParticles2D.EMISSION_SHAPE_SPHERE
+				particles.emission_sphere_radius = 20.0
+				particles.gravity = Vector2(0, -20)
+				particles.scale_amount_min = 1.5
+				particles.scale_amount_max = 3.0
+				particles.color = Color(0.5, 1.0, 1.0) # Cyan/Energy
+				particles.position = Vector2(25, 25) # Center of 50x50 slot
+				slot.add_child(particles)
+			
 		else:
 			# print("DEBUG: Slot %d -> Empty" % i)
 			icon.texture = null
@@ -213,7 +291,140 @@ func _update_artifact_display():
 			var style = slot.get_theme_stylebox("panel").duplicate()
 			style.border_color = Color(0.3, 0.3, 0.3)
 			slot.add_theme_stylebox_override("panel", style)
+			
+			if slot.has_node("Particles"):
+				slot.get_node("Particles").queue_free()
 
+# --- RECHARGE POPUP LOGIC ---
+
+var recharge_popup: PanelContainer
+var recharge_slider: HSlider
+var recharge_info_label: Label
+var recharge_robot_label: Label
+
+func _setup_recharge_popup():
+	# Create overlay
+	recharge_popup = PanelContainer.new()
+	recharge_popup.name = "RechargePopup"
+	recharge_popup.visible = false
+	# Center it
+	recharge_popup.set_anchors_preset(Control.PRESET_CENTER)
+	recharge_popup.custom_minimum_size = Vector2(400, 250)
+	
+	# Add a background style
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(0.1, 0.1, 0.1, 0.95)
+	style.border_width_left = 2; style.border_width_top = 2; style.border_width_right = 2; style.border_width_bottom = 2
+	style.border_color = Color(0, 1, 0) # Green border
+	style.corner_radius_top_left = 10; style.corner_radius_top_right = 10; style.corner_radius_bottom_right = 10; style.corner_radius_bottom_left = 10
+	recharge_popup.add_theme_stylebox_override("panel", style)
+	
+	var vbox = VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 15)
+	recharge_popup.add_child(vbox)
+	
+	# Title
+	var title = Label.new()
+	title.text = "RECHARGE ROBOT"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 24)
+	title.add_theme_color_override("font_color", Color(0, 1, 0))
+	vbox.add_child(title)
+	
+	# Info
+	recharge_robot_label = Label.new()
+	recharge_robot_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vbox.add_child(recharge_robot_label)
+	
+	# Slider
+	recharge_slider = HSlider.new()
+	recharge_slider.value_changed.connect(_on_recharge_slider_changed)
+	vbox.add_child(recharge_slider)
+	
+	# Cost Info
+	recharge_info_label = Label.new()
+	recharge_info_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	recharge_info_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
+	vbox.add_child(recharge_info_label)
+	
+	# Buttons
+	var hbox = HBoxContainer.new()
+	hbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	hbox.add_theme_constant_override("separation", 20)
+	vbox.add_child(hbox)
+	
+	var abort_btn = Button.new()
+	abort_btn.text = "ABORT"
+	abort_btn.pressed.connect(_on_recharge_abort)
+	hbox.add_child(abort_btn)
+	
+	var confirm_btn = Button.new()
+	confirm_btn.text = "CONFIRM"
+	confirm_btn.add_theme_color_override("font_color", Color(0, 1, 0))
+	confirm_btn.pressed.connect(_on_recharge_confirm)
+	hbox.add_child(confirm_btn)
+	
+	# Add to main view (on top of everything)
+	add_child(recharge_popup)
+
+func _on_recharge_button_pressed():
+	# Show popup
+	recharge_popup.visible = true
+	recharge_popup.move_to_front()
+	
+	# Setup Slider
+	recharge_slider.min_value = RobotState.current_energy
+	recharge_slider.max_value = RobotState.MAX_ENERGY
+	
+	# Default to max possible charge
+	var max_possible = min(RobotState.MAX_ENERGY, RobotState.current_energy + RobotState.base_energy_current)
+	recharge_slider.value = max_possible
+	
+	# If we can't charge anything, disable?
+	# recharge_slider.editable = (max_possible > RobotState.current_energy)
+	
+	_on_recharge_slider_changed(recharge_slider.value)
+
+func _on_recharge_slider_changed(value):
+	# Clamp to what we can afford
+	var max_achievable = RobotState.current_energy + RobotState.base_energy_current
+	if value > max_achievable:
+		recharge_slider.value = max_achievable
+		return
+		
+	if value < RobotState.current_energy:
+		recharge_slider.value = RobotState.current_energy
+		return
+		
+	var cost = int(value) - RobotState.current_energy
+	recharge_info_label.text = "Cost: %d Base Energy" % cost
+	recharge_robot_label.text = "Robot Energy: %d -> %d / %d" % [RobotState.current_energy, value, RobotState.MAX_ENERGY]
+
+func _on_recharge_confirm():
+	var energy_to_charge = int(recharge_slider.value) - RobotState.current_energy
+	if energy_to_charge > 0:
+		RobotState.charge_robot_from_base(energy_to_charge)
+		_update_artifact_display() # Updates bars too
+	recharge_popup.visible = false
+
+func _on_recharge_abort():
+	recharge_popup.visible = false
+
+
+func _refresh_map_particles():
+	# Refresh Top Row
+	for placeholder in top_row_container.get_children():
+		if placeholder.get_child_count() > 0:
+			var room_block = placeholder.get_child(0)
+			if room_block.has_method("update_particles"):
+				room_block.update_particles()
+				
+	# Refresh Bottom Row
+	for placeholder in bottom_row_container.get_children():
+		if placeholder.get_child_count() > 0:
+			var room_block = placeholder.get_child(0)
+			if room_block.has_method("update_particles"):
+				room_block.update_particles()
 
 func _setup_resource_display():
 	# Find the right-side container (parent of action_buttons_container)
@@ -1113,8 +1324,7 @@ func _on_execute_plan_pressed():
 		# Only for LOOT, SCAVENGE, REPAIR (User requested no SCAN)
 		if mission.type in ["LOOT", "SCAVENGE", "REPAIR"]:
 			# Chance to find an artifact
-			# DEBUG: Increased to 20% for testing
-			print("DEBUG: Checking for artifact drop (Mission: %s)..." % mission.type)
+			# Let's say 20% chance per action (increased from 5% for better gameplay flow).
 			if randf() < 0.20:
 				var artifact = RobotState.generate_random_artifact()
 				if artifact:
@@ -1196,17 +1406,6 @@ func _on_execute_plan_pressed():
 
 # Diese Funktion wird von Godot bei jedem Tastendruck aufgerufen
 func _unhandled_input(event: InputEvent):
-	# DEBUG: F9 to add random artifact
-	if event is InputEventKey and event.pressed and event.keycode == KEY_F9:
-		print("DEBUG: F9 pressed - Adding random artifact")
-		var art = RobotState.generate_random_artifact()
-		RobotState.add_artifact(art)
-		# Assuming _update_artifact_display() is a method that exists and updates the UI
-		# If not, this line might cause an error or do nothing.
-		# For now, keeping it as per the instruction.
-		_update_artifact_display()
-		get_viewport().set_input_as_handled() # Consume the event
-
 	if event.is_action_pressed("ui_cancel"):
 		# Open Pause/Menu? For now just quit or nothing
 		pass
@@ -1223,6 +1422,11 @@ func _unhandled_input(event: InputEvent):
 		if debug_inspector_panel.visible:
 			update_debug_inspector()
 			
+	# --- DEBUG CHEAT: F9 ---
+	if event is InputEventKey and event.pressed and event.keycode == KEY_F9:
+		RobotState.debug_give_scanners()
+		get_viewport().set_input_as_handled()
+		
 	# --- DEBUG CHEAT: F8 REMOVED ---
 	#ä#(User reported crash, removing debug binding)
 	pass
@@ -1291,3 +1495,18 @@ func find_room_block(room_id: String) -> Node:
 			if block.get("room_data") and block.room_data.room_id == room_id:
 				return block
 	return null
+
+func _on_robot_energy_changed(_new_max_energy):
+	# Update the Robot Energy Bar
+	energy_bar.max_value = RobotState.MAX_ENERGY
+	energy_bar.value = RobotState.current_energy
+	energy_bar_label.text = "%d / %d" % [RobotState.current_energy, RobotState.MAX_ENERGY]
+	
+	# Also update Base Energy Bar if present
+	var energy_container = energy_bar.get_parent()
+	if energy_container.has_node("BaseEnergyBar"):
+		var bar = energy_container.get_node("BaseEnergyBar")
+		bar.max_value = RobotState.base_max_energy
+		bar.value = RobotState.base_energy_current
+		var label = bar.get_node("BaseEnergyLabel")
+		label.text = "Base Energy: %d / %d" % [RobotState.base_energy_current, RobotState.base_max_energy]

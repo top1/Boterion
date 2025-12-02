@@ -2,7 +2,8 @@
 # Generiert die Datenstruktur für die Korridorkarte.
 
 # Wir laden unser RoomData-Skript, um neue Instanzen davon erstellen zu können.
-const RoomData = preload("res://RoomData.gd")
+# const RoomData = preload("res://RoomData.gd") # REMOVED: Use global class_name instead
+
 
 # Die Gesamtbreite des Korridors in Blöcken.
 const MAP_LENGTH = 42
@@ -106,9 +107,22 @@ func _generate_row(id_prefix: String) -> Array[RoomData]:
 		new_room.loot_pool["scrap_metal"]["initial"] = scrap_amount
 		new_room.loot_pool["scrap_metal"]["current"] = scrap_amount
 
+		# --- BLUEPRINT GENERATION ---
 		var blueprints_amount = rng.randi_range(0, new_room.size)
-		new_room.loot_pool["blueprints"]["initial"] = blueprints_amount
-		new_room.loot_pool["blueprints"]["current"] = blueprints_amount
+		var new_items: Array[Resource] = []
+		new_room.blueprint_items = new_items
+		
+		# Load items if needed (lazy load list)
+		if _all_possible_items.is_empty():
+			_load_all_items()
+			
+		for i in range(blueprints_amount):
+			if not _all_possible_items.is_empty():
+				new_room.blueprint_items.append(_all_possible_items.pick_random())
+		
+		new_room.loot_pool["blueprints"]["initial"] = new_room.blueprint_items.size()
+		new_room.loot_pool["blueprints"]["current"] = new_room.blueprint_items.size()
+		# --- END BLUEPRINT GENERATION ---
 
 		var food_amount = rng.randi_range(5, new_room.size * 3)
 		new_room.loot_pool["food"]["initial"] = food_amount
@@ -137,3 +151,30 @@ func _get_random_room_type() -> RoomData.RoomType:
 	room_types.erase("size")
 	var random_type_name = room_types.pick_random()
 	return RoomData.RoomType[random_type_name]
+
+var _all_possible_items: Array[Resource] = []
+
+func _load_all_items():
+	var items_to_load = [
+		"res://items/solar_panel.tres",
+		"res://items/quantum_storage.tres",
+		"res://items/heavy_duty_frame.tres",
+		"res://items/overclocked_core.tres",
+		"res://items/capacitor_bank.tres",
+		"res://items/potato_battery.tres",
+		"res://items/duct_tape_pouch.tres",
+		"res://items/rusty_antenna.tres",
+		"res://items/cardboard_box.tres",
+		"res://items/lithium_ion_cell.tres",
+		"res://items/cargo_net.tres",
+		"res://items/swiss_army_bot_tool.tres",
+		"res://items/mini_fusion_reactor.tres",
+		"res://items/expanded_cargo_pod.tres",
+		"res://items/zero_point_module.tres",
+		"res://items/black_hole_pocket.tres"
+	]
+	for path in items_to_load:
+		if ResourceLoader.exists(path):
+			var item = load(path)
+			if item:
+				_all_possible_items.append(item)

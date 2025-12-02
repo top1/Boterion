@@ -32,6 +32,7 @@ enum LootingState {NONE, LOOTING, SCAVENGING}
 	"blueprints": {"initial": 0, "current": 0},
 	"food": {"initial": 0, "current": 0}
 }
+@export var blueprint_items: Array[Resource] = [] # Array of Item resources
 @export var is_door_open: bool = false
 
 # KORRIGIERT: Zugriff mit ["key"] statt mit .key

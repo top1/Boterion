@@ -11,6 +11,14 @@ extends Control # Supports both PanelContainer and Button
 # This is the perfect place for the initial setup.
 func _ready():
 	update_display()
+	
+	# Add Juice Animation
+	var juice = Juice.new()
+	juice.name = "Juice"
+	juice.idle_amplitude = Vector2(0, -3.0) # Float up and down
+	juice.idle_speed = 1.5 + randf() # Random speed
+	juice.hover_scale = Vector2(1.1, 1.1)
+	add_child(juice)
 
 func update_display():
 	# Update the TextureRect's texture and potentially a label for the item name
@@ -22,7 +30,12 @@ func update_display():
 			self.set("expand_icon", true)
 			# Optional: Tooltip
 			var desc = item.description if "description" in item else ""
-			self.tooltip_text = item.item_name + "\n" + desc
+			var stats_text = ""
+			if item.stats_modifier:
+				for key in item.stats_modifier:
+					var val = item.stats_modifier[key]
+					stats_text += "\n%s: +%d" % [key.capitalize(), val]
+			self.tooltip_text = "%s\n%s%s" % [item.item_name, desc, stats_text]
 		else:
 			self.set("icon", null)
 	else:

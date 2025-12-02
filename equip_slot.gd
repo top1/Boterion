@@ -34,12 +34,30 @@ func _ready():
 			break # Stop searching once we find it
 	
 	update_display()
+	
+	# Add Juice Animation
+	var juice = Juice.new()
+	juice.name = "Juice"
+	juice.idle_amplitude = Vector2(0, -2.0)
+	juice.idle_speed = 2.0 + randf()
+	juice.hover_scale = Vector2(1.1, 1.1)
+	add_child(juice)
 
 func update_display():
 	var texture_rect = $ItemTexture
 	if current_equipped_item and texture_rect:
 		texture_rect.texture = current_equipped_item.item_texture
 		texture_rect.visible = true
+		
+		# Tooltip
+		var item = current_equipped_item
+		var desc = item.description if "description" in item else ""
+		var stats_text = ""
+		if item.stats_modifier:
+			for key in item.stats_modifier:
+				var val = item.stats_modifier[key]
+				stats_text += "\n%s: +%d" % [key.capitalize(), val]
+		self.tooltip_text = "%s\n%s%s" % [item.item_name, desc, stats_text]
 	elif texture_rect:
 		texture_rect.texture = null
 		texture_rect.visible = false

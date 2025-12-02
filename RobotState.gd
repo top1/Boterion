@@ -197,9 +197,7 @@ func calculate_path_cost(target_room_distance: int, action_cost: int) -> void:
 	var travel_cost = target_room_distance * move_cost
 	var return_cost = target_room_distance * move_cost
 	var total = travel_cost + action_cost + return_cost
-	print("DEBUG PATH COST: Dist: %d | Travel: %d | Action: %d | Return: %d | Total: %d" % [target_room_distance, travel_cost, action_cost, return_cost, total])
 func add_resources(loot_dict: Dictionary):
-	print("DEBUG: RobotState.add_resources called with: ", loot_dict)
 	if loot_dict.has("scrap_metal"):
 		scrap += int(loot_dict["scrap_metal"])
 	if loot_dict.has("electronics"):
@@ -210,7 +208,6 @@ func add_resources(loot_dict: Dictionary):
 		# For now, let's keep it as a resource, maybe for healing or trading later.
 	
 	emit_signal("resources_changed")
-	print("Resources Updated: Scrap=%d, Elec=%d, Food=%d" % [scrap, electronics, food])
 
 func generate_daily_research_offer():
 	# Random cost between 40 and 100
@@ -280,6 +277,7 @@ func charge_robot_from_base(amount_to_charge: int):
 	# Double check clamp (redundant but safe)
 	current_energy = min(current_energy, MAX_ENERGY)
 	
+	emit_signal("energy_changed", MAX_ENERGY)
 	print("Charged robot with %d energy. Cost: %d Base Energy." % [actual_charge, actual_charge])
 
 func increase_base_energy(amount: int):
@@ -309,6 +307,12 @@ func get_artifact_bonus(effect_type: Artifact.EffectType) -> float:
 			total_bonus += art.effect_value
 	return total_bonus
 
+func has_artifact_effect(effect_type: Artifact.EffectType) -> bool:
+	for art in active_artifacts:
+		if art.effect_type == effect_type:
+			return true
+	return false
+
 # Helper to generate a random artifact (for testing/drops)
 func generate_random_artifact() -> Artifact:
 	var art = Artifact.new()
@@ -317,7 +321,11 @@ func generate_random_artifact() -> Artifact:
 		Artifact.EffectType.REDUCE_SCAN_COST,
 		Artifact.EffectType.REDUCE_DOOR_COST,
 		Artifact.EffectType.INCREASE_LOOT_SCRAP,
-		Artifact.EffectType.INCREASE_LOOT_ELEC
+		Artifact.EffectType.REDUCE_DOOR_COST,
+		Artifact.EffectType.INCREASE_LOOT_SCRAP,
+		Artifact.EffectType.INCREASE_LOOT_ELEC,
+		Artifact.EffectType.REVEAL_ANCIENT_FACTORY,
+		Artifact.EffectType.REVEAL_BLUEPRINTS
 	]
 	var type = types.pick_random()
 	art.effect_type = type
@@ -346,8 +354,33 @@ func generate_random_artifact() -> Artifact:
 			art.name = "Copper Finder"
 			art.description = "Increases electronics found."
 			art.effect_value = 0.5
+		Artifact.EffectType.REVEAL_ANCIENT_FACTORY:
+			art.name = "Ancient Scanner"
+			art.description = "Reveals Ancient Factories on the map."
+		Artifact.EffectType.REVEAL_BLUEPRINTS:
+			art.name = "Blueprint Scanner"
+			art.description = "Reveals Blueprint locations and rarity."
 			
 	# Placeholder icon (we can generate one or use existing)
 	# art.icon = ...
 	
 	return art
+
+func debug_give_scanners():
+	print("--- DEBUG: Giving Scanners ---")
+	
+	# Ancient Scanner
+	var ancient = Artifact.new()
+	ancient.effect_type = Artifact.EffectType.REVEAL_ANCIENT_FACTORY
+	ancient.name = "Ancient Scanner (Debug)"
+	ancient.description = "Reveals Ancient Factories."
+	ancient.id = "debug_ancient"
+	add_artifact(ancient)
+	
+	# Blueprint Scanner
+	var blueprint = Artifact.new()
+	blueprint.effect_type = Artifact.EffectType.REVEAL_BLUEPRINTS
+	blueprint.name = "Blueprint Scanner (Debug)"
+	blueprint.description = "Reveals Blueprints."
+	blueprint.id = "debug_blueprint"
+	add_artifact(blueprint)
