@@ -22,13 +22,54 @@ func _ready():
 	for screen_name in screens:
 		screens[screen_name].hide()
 	
-	# Dynamically find or assume these exist in Main.tscn (We will add them next)
+	# Dynamically find or assume these exist in Main.tscn
+	# Use get_node_or_null to be safer, though has_node is fine.
+	# We'll also print debug info if missing.
+	
 	if has_node("MainframeScreen"):
 		screens["mainframe"] = $MainframeScreen
+	
 	if has_node("CraftingScreen"):
 		screens["crafting"] = $CraftingScreen
+	
+	if has_node("IntroScreen"):
+		screens["intro"] = $IntroScreen
+		if $IntroScreen.has_signal("intro_finished"):
+			if not $IntroScreen.is_connected("intro_finished", _on_intro_finished):
+				$IntroScreen.connect("intro_finished", _on_intro_finished)
+
+	# EXPLICITLY check for MainMenuScreen
+	if has_node("MainMenuScreen"):
+		screens["menu"] = $MainMenuScreen
+	else:
+		# Try to find it by iteration
+		var found = false
+		for child in get_children():
+			if "MainMenu" in child.name:
+				screens["menu"] = child
+				found = true
+				break
+		if not found:
+			print("CRITICAL ERROR: MainMenuScreen node missing in ScreenManager!")
+			print("--- ScreenManager Children ---")
+			print_tree_pretty()
+			print("----------------------------")
+			
+			# EMERGENCY Failsafe: Try to instantiate it manually
+			print("Attempting emergency instantiation of MainMenuScreen...")
+			var menu_scene = load("res://MainMenuScreen.tscn")
+			if menu_scene:
+				var menu_instance = menu_scene.instantiate()
+				menu_instance.name = "MainMenuScreen"
+				add_child(menu_instance)
+				screens["menu"] = menu_instance
+				print("Emergency instantiation successful.")
+			else:
+				print("Failed to load generic res://MainMenuScreen.tscn")
 		
-	show_screen("game")
+	# Start with INTRO
+	print("ScreenManager ready. Registered screens: ", screens.keys())
+	show_screen("intro")
 		
 
 func show_screen(screen_name: String):
@@ -70,3 +111,6 @@ func _on_equipment_button_pressed() -> void:
 
 func _on_back_pressed() -> void:
 	show_screen("game")
+
+func _on_intro_finished():
+	show_screen("menu")

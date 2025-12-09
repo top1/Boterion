@@ -66,6 +66,7 @@ var _has_initialized_full_charge: bool = false
 
 func _ready():
 	_recalculate_max_values()
+	ensure_initial_full_charge()
 	
 	# --- DEBUG: ADD NEW ITEMS FOR TESTING ---
 	call_deferred("_debug_add_test_items")

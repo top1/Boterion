@@ -98,21 +98,22 @@ custom_minimum_size = Vector2(50, 50)
 layout_mode = 2
 theme_override_constants/separation = 0
 
-[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+[node name="SplitVBox" type="VBoxContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="VBoxContainer2" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HBoxContainer"]
+[node name="PanelsHBox" type="HBoxContainer" parent="MarginContainer/VBoxContainer/SplitVBox"]
 layout_mode = 2
+size_flags_vertical = 3
 
-[node name="Panel" type="Panel" parent="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer2"]
+[node name="Panel" type="Panel" parent="MarginContainer/VBoxContainer/SplitVBox/PanelsHBox"]
 custom_minimum_size = Vector2(800, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_styles/panel = SubResource("StyleBoxTexture_1f5pp")
 
-[node name="MissionListLabel" type="RichTextLabel" parent="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer2/Panel"]
+[node name="MissionListLabel" type="RichTextLabel" parent="MarginContainer/VBoxContainer/SplitVBox/PanelsHBox/Panel"]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
@@ -128,66 +129,13 @@ bbcode_enabled = true
 text = "MISSION PLANNER AREA"
 fit_content = false
 
-[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer2"]
-layout_direction = 3
-layout_mode = 2
-size_flags_horizontal = 4
-size_flags_vertical = 4
-
-[node name="toRobotEquip" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer2/HBoxContainer"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(100, 25)
-layout_mode = 2
-text = "WORKSHOP"
-
-[node name="toMainframe" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer2/HBoxContainer"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(100, 25)
-layout_mode = 2
-text = "MAINFRAME"
-
-[node name="toCrafting" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer2/HBoxContainer"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(100, 25)
-layout_mode = 2
-text = "FABRICATION"
-
-[node name="RemoveLastMissionButton" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer2/HBoxContainer"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(100, 25)
-layout_mode = 2
-size_flags_horizontal = 8
-text = "UNDO"
-
-[node name="ExecutePlanButton" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer2/HBoxContainer"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(100, 25)
-layout_mode = 2
-size_flags_horizontal = 8
-text = "EXECUTE"
-
-[node name="EnergyBar" type="ProgressBar" parent="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer2"]
-unique_name_in_owner = true
-layout_mode = 2
-
-[node name="EnergyBarLabel" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer2/EnergyBar"]
-unique_name_in_owner = true
-layout_mode = 0
-offset_right = 40.0
-offset_bottom = 23.0
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HBoxContainer"]
+[node name="Panel2" type="Panel" parent="MarginContainer/VBoxContainer/SplitVBox/PanelsHBox"]
 custom_minimum_size = Vector2(300, 0)
-layout_mode = 2
-
-[node name="Panel2" type="Panel" parent="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 
-[node name="RoomInfoLabel" type="RichTextLabel" parent="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer/Panel2"]
+[node name="RoomInfoLabel" type="RichTextLabel" parent="MarginContainer/VBoxContainer/SplitVBox/PanelsHBox/Panel2"]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
@@ -203,16 +151,77 @@ bbcode_enabled = true
 text = "Room Info"
 fit_content = true
 
-[node name="LootActionContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer"]
+[node name="ControlsHBox" type="HBoxContainer" parent="MarginContainer/VBoxContainer/SplitVBox"]
+layout_mode = 2
+
+[node name="LeftControlsVBox" type="VBoxContainer" parent="MarginContainer/VBoxContainer/SplitVBox/ControlsHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer/SplitVBox/ControlsHBox/LeftControlsVBox"]
+layout_direction = 3
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+
+[node name="toRobotEquip" type="Button" parent="MarginContainer/VBoxContainer/SplitVBox/ControlsHBox/LeftControlsVBox/HBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(100, 25)
+layout_mode = 2
+text = "WORKSHOP"
+
+[node name="toMainframe" type="Button" parent="MarginContainer/VBoxContainer/SplitVBox/ControlsHBox/LeftControlsVBox/HBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(100, 25)
+layout_mode = 2
+text = "MAINFRAME"
+
+[node name="toCrafting" type="Button" parent="MarginContainer/VBoxContainer/SplitVBox/ControlsHBox/LeftControlsVBox/HBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(100, 25)
+layout_mode = 2
+text = "FABRICATION"
+
+[node name="RemoveLastMissionButton" type="Button" parent="MarginContainer/VBoxContainer/SplitVBox/ControlsHBox/LeftControlsVBox/HBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(100, 25)
+layout_mode = 2
+size_flags_horizontal = 8
+text = "UNDO"
+
+[node name="ExecutePlanButton" type="Button" parent="MarginContainer/VBoxContainer/SplitVBox/ControlsHBox/LeftControlsVBox/HBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(100, 25)
+layout_mode = 2
+size_flags_horizontal = 8
+text = "EXECUTE"
+
+[node name="EnergyBar" type="ProgressBar" parent="MarginContainer/VBoxContainer/SplitVBox/ControlsHBox/LeftControlsVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="EnergyBarLabel" type="Label" parent="MarginContainer/VBoxContainer/SplitVBox/ControlsHBox/LeftControlsVBox/EnergyBar"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 23.0
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="RightControlsVBox" type="VBoxContainer" parent="MarginContainer/VBoxContainer/SplitVBox/ControlsHBox"]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+
+[node name="LootActionContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/SplitVBox/ControlsHBox/RightControlsVBox"]
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
 
-[node name="LootSlider" type="HSlider" parent="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer/LootActionContainer"]
+[node name="LootSlider" type="HSlider" parent="MarginContainer/VBoxContainer/SplitVBox/ControlsHBox/RightControlsVBox/LootActionContainer"]
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="LootEnergyLabel" type="RichTextLabel" parent="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer/LootActionContainer"]
+[node name="LootEnergyLabel" type="RichTextLabel" parent="MarginContainer/VBoxContainer/SplitVBox/ControlsHBox/RightControlsVBox/LootActionContainer"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -220,31 +229,31 @@ bbcode_enabled = true
 text = "Energy to commit: 0"
 fit_content = true
 
-[node name="VBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer"]
+[node name="VBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer/SplitVBox/ControlsHBox/RightControlsVBox"]
 layout_mode = 2
 theme_override_constants/separation = 2
 
-[node name="ScanButton" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer/VBoxContainer"]
+[node name="ScanButton" type="Button" parent="MarginContainer/VBoxContainer/SplitVBox/ControlsHBox/RightControlsVBox/VBoxContainer"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(46, 50)
 layout_mode = 2
 text = "SCAN"
 
-[node name="LootButton" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer/VBoxContainer"]
+[node name="LootButton" type="Button" parent="MarginContainer/VBoxContainer/SplitVBox/ControlsHBox/RightControlsVBox/VBoxContainer"]
 unique_name_in_owner = true
 visible = false
 custom_minimum_size = Vector2(146, 50)
 layout_mode = 2
 text = "LOOT"
 
-[node name="ScavengeButton" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer/VBoxContainer"]
+[node name="ScavengeButton" type="Button" parent="MarginContainer/VBoxContainer/SplitVBox/ControlsHBox/RightControlsVBox/VBoxContainer"]
 unique_name_in_owner = true
 visible = false
 custom_minimum_size = Vector2(146, 50)
 layout_mode = 2
 text = "SCAVANGE"
 
-[node name="OpenButton" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer/VBoxContainer"]
+[node name="OpenButton" type="Button" parent="MarginContainer/VBoxContainer/SplitVBox/ControlsHBox/RightControlsVBox/VBoxContainer"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -278,7 +287,7 @@ layout_mode = 2
 unique_name_in_owner = true
 layout_mode = 2
 
-[connection signal="pressed" from="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer2/HBoxContainer/toRobotEquip" to="." method="_on_to_robot_equip_pressed"]
-[connection signal="pressed" from="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer2/HBoxContainer/toMainframe" to="." method="_on_to_mainframe_pressed"]
-[connection signal="pressed" from="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer2/HBoxContainer/toCrafting" to="." method="_on_to_crafting_pressed"]
-[connection signal="pressed" from="MarginContainer/VBoxContainer/HBoxContainer/VBoxContainer2/HBoxContainer/ExecutePlanButton" to="." method="_on_execute_plan_button_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/SplitVBox/ControlsHBox/LeftControlsVBox/HBoxContainer/toRobotEquip" to="." method="_on_to_robot_equip_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/SplitVBox/ControlsHBox/LeftControlsVBox/HBoxContainer/toMainframe" to="." method="_on_to_mainframe_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/SplitVBox/ControlsHBox/LeftControlsVBox/HBoxContainer/toCrafting" to="." method="_on_to_crafting_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/SplitVBox/ControlsHBox/LeftControlsVBox/HBoxContainer/ExecutePlanButton" to="." method="_on_execute_plan_button_pressed"]

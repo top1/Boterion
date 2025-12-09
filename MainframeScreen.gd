@@ -13,6 +13,7 @@ var all_blueprints: Array[Item] = []
 func _ready():
 	back_button.pressed.connect(_on_back_pressed)
 	research_button.pressed.connect(_on_research_pressed)
+	%SaveButton.pressed.connect(_on_save_pressed)
 	
 	# Connect option buttons
 	for child in blueprint_selection.get_children():
@@ -94,6 +95,17 @@ func _on_back_pressed():
 	var screen_manager = get_tree().get_first_node_in_group("ScreenManager")
 	if screen_manager:
 		screen_manager.show_screen("game") # Or main menu if we had one
+
+func _on_save_pressed():
+	SaveManager.save_game()
+	# Optional: Show visual feedback (we can use the WarningDialog from Main, or just a print for now)
+	var warning = get_tree().get_first_node_in_group("WarningDialog") # Assuming Main.tscn puts it in a group or we find it
+	if %ResourceLabel:
+		var original_text = %ResourceLabel.text
+		%ResourceLabel.text = "[center][color=#00ff00]GAME SAVED SUCCESSFULLY![/color][/center]"
+		await get_tree().create_timer(1.5).timeout
+		if is_instance_valid(%ResourceLabel):
+			%ResourceLabel.text = original_text
 
 func _load_all_blueprints():
 	# Load from "res://items/"

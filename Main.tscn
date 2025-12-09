@@ -6,6 +6,8 @@
 [ext_resource type="PackedScene" uid="uid://bp4p1ij4cj5pj" path="res://RewardScreen.tscn" id="5_fos0i"]
 [ext_resource type="PackedScene" path="res://MainframeScreen.tscn" id="6_mainframe"]
 [ext_resource type="PackedScene" path="res://CraftingScreen.tscn" id="7_crafting"]
+[ext_resource type="PackedScene" path="res://IntroScreen.tscn" id="8_intro"]
+[ext_resource type="PackedScene" path="res://MainMenuScreen.tscn" id="9_menu"]
 
 [node name="Main" type="Control"]
 layout_mode = 3
@@ -57,6 +59,14 @@ layout_mode = 1
 unique_name_in_owner = true
 visible = false
 layout_mode = 1
+
+[node name="IntroScreen" parent="CanvasLayer/ScreenManager" instance=ExtResource("8_intro")]
+unique_name_in_owner = true
+visible = false # Logic will show it
+
+[node name="MainMenuScreen" parent="CanvasLayer/ScreenManager" instance=ExtResource("9_menu")]
+unique_name_in_owner = true
+visible = false # Logic will show it
 
 [node name="WarningDialog" type="AcceptDialog" parent="."]
 unique_name_in_owner = true

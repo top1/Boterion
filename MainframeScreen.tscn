@@ -105,6 +105,12 @@ text = "Blueprint C"
 layout_mode = 2
 alignment = 1
 
+[node name="SaveButton" type="Button" parent="MarginContainer/VBoxContainer/Footer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(150, 40)
+layout_mode = 2
+text = "SAVE PROGESS"
+
 [node name="BackButton" type="Button" parent="MarginContainer/VBoxContainer/Footer"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(150, 40)
